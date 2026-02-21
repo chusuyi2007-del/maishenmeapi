@@ -1,0 +1,9 @@
+mkdir -p public
+git mv index.html public/index.html
+git mv manifest.json public/manifest.json
+git mv sw.js public/sw.js
+git mv icon-192.svg public/icon-192.svg
+
+git add -A
+git commit -m "Add public folder and move static files"
+git push
