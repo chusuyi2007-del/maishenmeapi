@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d6a4f"/>
+      <stop offset="100%" style="stop-color:#1e5038"/>
+    </linearGradient>
+    <linearGradient id="basket" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95"/>
+      <stop offset="100%" style="stop-color:#f0ede6;stop-opacity:0.95"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+  <!-- Subtle texture ring -->
+  <circle cx="96" cy="96" r="72" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <!-- Shopping basket body -->
+  <path d="M52 88 Q50 130 96 136 Q142 130 140 88 Z" fill="url(#basket)" opacity="0.95"/>
+  <!-- Basket weave lines horizontal -->
+  <path d="M54 100 Q96 106 138 100" fill="none" stroke="rgba(45,106,79,0.25)" stroke-width="1.5"/>
+  <path d="M54 112 Q96 118 138 112" fill="none" stroke="rgba(45,106,79,0.25)" stroke-width="1.5"/>
+  <path d="M56 124 Q96 129 136 124" fill="none" stroke="rgba(45,106,79,0.25)" stroke-width="1.5"/>
+  <!-- Basket handle -->
+  <path d="M70 88 Q70 62 96 60 Q122 62 122 88" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+  <!-- Chopsticks crossing over basket -->
+  <line x1="75" y1="50" x2="118" y2="142" stroke="#f4c55a" stroke-width="5" stroke-linecap="round" opacity="0.92"/>
+  <line x1="118" y1="50" x2="75" y2="142" stroke="#f4c55a" stroke-width="5" stroke-linecap="round" opacity="0.92"/>
+  <!-- Small veggie/leaf accent in basket -->
+  <ellipse cx="96" cy="112" rx="16" ry="10" fill="#52b788" opacity="0.7"/>
+  <path d="M96 102 Q100 108 96 116 Q92 108 96 102Z" fill="#2d6a4f" opacity="0.6"/>
+</svg>
