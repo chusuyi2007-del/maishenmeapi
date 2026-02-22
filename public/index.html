@@ -1240,8 +1240,8 @@ function switchTab(tab) {
 // 部署后端代理后，把下面的URL改成你的Railway/Render域名
 // 例如：'https://maishenme-api.up.railway.app/api/claude'
 // 本地测试用：'http://localhost:3000/api/claude'
-const PROXY_URL = '/api/claude';
-const PLACES_URL = '/api/places';
+const PROXY_URL = '/api/gemini';
+const PLACES_URL = 'https://maishenmeapi-production.up.railway.app/api/places';
 
 // ====== API ======
 async function callClaude(messages, system, maxTokens = 1200) {
@@ -2804,7 +2804,7 @@ async function sendExpiryNotifications() {
     // Request GPS early so it's ready when needed
     requestGPSEarly();
     if (PROXY_URL) {
-      const warmUp = () => fetch('/health').catch(() => {});
+      const warmUp = () => fetch(PROXY_URL.replace('/api/claude', '/')).catch(() => {});
       warmUp();
       setInterval(warmUp, 4 * 60 * 1000);
     }
