@@ -811,11 +811,7 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
       </div>
     </div>
 
-    <!-- API key notice -->
-    <div style="margin-top:16px;padding:12px 14px;background:var(--surface2);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.6">
-      💡 当前显示模拟数据。接入 Google Places API key 后可显示真实附近超市和距离。
-      <span style="color:var(--green);cursor:pointer" onclick="promptApiKey()">点击配置</span>
-    </div>
+
   </div>
 </div>
 
@@ -1240,7 +1236,7 @@ function switchTab(tab) {
 // 部署后端代理后，把下面的URL改成你的Railway/Render域名
 // 例如：'https://maishenme-api.up.railway.app/api/claude'
 // 本地测试用：'http://localhost:3000/api/claude'
-const PROXY_URL = '/api/claude';
+const PROXY_URL = '/api/gemini';
 const PLACES_URL = '/api/places';
 
 // ====== API ======
@@ -2141,8 +2137,8 @@ async function getNearbyStores() {
       userLocation._lng = lng;
 
       const [asianRes, superRes] = await Promise.all([
-        fetch(`${PLACES_URL}/nearby?lat=${lat}&lng=${lng}&keyword=asian+grocery+supermarket&radius=8000`),
-        fetch(`${PLACES_URL}/nearby?lat=${lat}&lng=${lng}&keyword=supermarket+grocery&radius=5000`)
+        fetch(`${PLACES_URL}?lat=${lat}&lng=${lng}&keyword=asian+grocery+supermarket&radius=8000`),
+        fetch(`${PLACES_URL}?lat=${lat}&lng=${lng}&keyword=supermarket+grocery&radius=5000`)
       ]);
       const [asianData, superData] = await Promise.all([asianRes.json(), superRes.json()]);
 
@@ -2317,13 +2313,8 @@ async function renderStores() {
   noLoc.style.display = 'none';
   content.style.display = 'block';
   const locLabel = userLocation.city || (userLocation._lat ? '当前位置' : null);
-  if (!locLabel) {
-    noLoc.style.display = 'block';
-    content.style.display = 'none';
-    return;
-  }
-  document.getElementById('stores-location-label').textContent = '📍 ' + locLabel + ' 附近的超市';
-  document.getElementById('stores-subtitle').textContent = locLabel + ' 附近适合买中餐食材的超市';
+  document.getElementById('stores-location-label').textContent = '📍 ' + (locLabel || '当前位置') + ' 附近的超市';
+  document.getElementById('stores-subtitle').textContent = (locLabel || '当前位置') + ' 附近适合买中餐食材的超市';
 
   storesData = await getNearbyStores();
   renderStoreList();
@@ -2804,7 +2795,7 @@ async function sendExpiryNotifications() {
     // Request GPS early so it's ready when needed
     requestGPSEarly();
     if (PROXY_URL) {
-      const warmUp = () => fetch('/health').catch(() => {});
+      const warmUp = () => fetch(PROXY_URL.replace('/api/claude', '/')).catch(() => {});
       warmUp();
       setInterval(warmUp, 4 * 60 * 1000);
     }

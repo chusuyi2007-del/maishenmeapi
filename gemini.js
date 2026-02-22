@@ -10,7 +10,6 @@ export default async function handler(req, res) {
 
   const { messages, system, max_tokens = 1200 } = req.body;
 
-  // Convert Anthropic message format to Gemini format
   const contents = messages.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: Array.isArray(m.content)
@@ -36,7 +35,6 @@ export default async function handler(req, res) {
     const data = await r.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    // Return in Anthropic-compatible format so frontend works unchanged
     res.json({ content: [{ type: 'text', text }] });
   } catch (err) {
     res.status(500).json({ error: err.message });
