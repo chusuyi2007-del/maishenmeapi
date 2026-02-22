@@ -1,0 +1,7 @@
+{
+  "routes": [
+    { "src": "/api/gemini", "dest": "/api/gemini.js" },
+    { "src": "/api/places(.*)", "dest": "/api/places.js" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
+}
