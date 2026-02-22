@@ -1,0 +1,2871 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>买什么 · MaiShenme</title>
+<meta name="description" content="留学生食材匹配助手 · 菜谱解析 · 超市购物清单">
+<meta name="theme-color" content="#2d6a4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="买什么">
+<link rel="manifest" href="manifest.json">
+<!-- iOS icons -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#faf7f2;--surface:#fff;--surface2:#f4f0e8;
+  --ink:#1a1a18;--ink2:#4a4a44;--muted:#9a9a8e;--border:#e2ddd4;
+  --green:#2d6a4f;--green-light:#d8f3dc;--green-mid:#52b788;
+  --red:#c0392b;--red-light:#fdecea;
+  --yellow:#e67e22;--yellow-light:#fef3e2;
+  --blue:#1a6fa8;--blue-light:#dbeeff;
+  --shadow:0 2px 16px rgba(26,26,24,.08);--shadow-lg:0 8px 40px rgba(26,26,24,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:'Noto Sans SC',sans-serif;min-height:100vh;padding-top:54px;padding-bottom:72px}
+
+
+
+
+
+
+
+.page{display:none;max-width:920px;margin:0 auto;padding:28px 16px 80px;min-height:calc(100vh - 54px - 72px)}
+.page.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page-header{margin-bottom:22px}
+.page-header h1{font-family:'DM Serif Display',serif;font-size:clamp(22px,3.5vw,34px);font-weight:400;line-height:1.2;letter-spacing:-.5px;margin-bottom:5px}
+.page-header h1 em{font-style:italic;color:var(--green)}
+.page-header p{color:var(--muted);font-size:13px;font-weight:300}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media(max-width:640px){.two-col{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+textarea,input[type=text],select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--ink);font-family:'Noto Sans SC',sans-serif;font-size:13px;font-weight:300;padding:9px 12px;outline:none;transition:border-color .2s;line-height:1.7}
+textarea{resize:none}
+textarea:focus,input:focus,select:focus{border-color:var(--green)}
+textarea::placeholder,input::placeholder{color:var(--muted)}
+label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bottom:4px}
+.field{margin-bottom:11px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;border-radius:9px;font-family:'Noto Sans SC',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .18s;width:100%;margin-top:8px}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:#1e5038;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--ink2)}
+.btn-outline:hover{border-color:var(--green);color:var(--green)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#155d8e;transform:translateY(-1px)}
+.btn-sm{padding:5px 11px;font-size:11px;width:auto;margin-top:0;border-radius:20px}
+
+/* ING ITEMS */
+.ing-list{display:flex;flex-direction:column;gap:5px}
+.ing-item{display:flex;align-items:center;gap:7px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;animation:fadeIn .3s ease both;transition:all .2s}
+.ing-item.matched{background:var(--green-light);border-color:var(--green-mid)}
+.ing-item.low-stock{background:var(--yellow-light);border-color:#f0a500}
+.ing-item.no-stock{background:var(--red-light);border-color:#e8a09a}
+.ing-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .3s}
+.ing-item.matched .ing-dot{background:var(--green)}
+.ing-item.low-stock .ing-dot{background:var(--yellow)}
+.ing-item.no-stock .ing-dot{background:var(--red)}
+.ing-zh{font-size:13px;font-weight:500;min-width:50px}
+.ing-meta{font-size:11px;color:var(--muted);font-weight:300}
+.ing-right{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.ing-check{font-size:11px;color:var(--green);font-weight:500;opacity:0;transition:opacity .3s;white-space:nowrap}
+.ing-item.matched .ing-check{opacity:1}
+.stock-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;white-space:nowrap}
+.stock-ok{background:var(--green-light);color:var(--green)}
+.stock-low{background:var(--yellow-light);color:var(--yellow)}
+.stock-none{background:var(--red-light);color:var(--red)}
+.sub-inline-btn{font-size:10px;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:2px 7px;background:transparent;cursor:pointer;font-family:'Noto Sans SC',sans-serif;transition:all .15s;flex-shrink:0}
+.sub-inline-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border);border-radius:11px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--surface2)}
+.upload-zone:hover{border-color:var(--green);background:var(--green-light)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:26px;display:block;margin-bottom:5px}
+.upload-text{font-size:12px;color:var(--muted)}
+.upload-text strong{color:var(--green)}
+#preview-img,#receipt-preview-img{width:100%;border-radius:9px;margin-top:10px;display:none;max-height:180px;object-fit:cover}
+
+/* RESULT */
+.result-box{margin-top:10px;border-radius:11px;padding:13px;display:none;animation:fadeIn .3s ease}
+.result-box.match{background:var(--green-light);border:1px solid var(--green-mid)}
+.result-box.partial{background:var(--yellow-light);border:1px solid #f0a500}
+.result-box.no_match{background:var(--red-light);border:1px solid #e8a09a}
+.result-box.no_list{background:var(--yellow-light);border:1px solid #f0a500}
+.result-status-label{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.match .result-status-label{color:var(--green)}
+.partial .result-status-label,.no_list .result-status-label{color:var(--yellow)}
+.no_match .result-status-label{color:var(--red)}
+.result-text{font-size:12px;line-height:1.7;font-weight:300}
+.result-tip{font-size:11px;color:var(--ink2);margin-top:4px;font-style:italic}
+
+/* PROGRESS */
+.progress{height:2px;background:var(--border);border-radius:2px;margin-top:8px;display:none;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);width:0%;transition:width .3s}
+.loading-dots{display:inline-flex;gap:3px}
+.loading-dots span{width:5px;height:5px;background:currentColor;border-radius:50%;animation:ldot .8s infinite both}
+.loading-dots span:nth-child(2){animation-delay:.15s}
+.loading-dots span:nth-child(3){animation-delay:.3s}
+@keyframes ldot{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1);opacity:1}}
+
+/* SUBSTITUTE */
+.sub-result-item{background:#fffdf5;border:1px solid #e8d99a;border-radius:11px;padding:12px;margin-bottom:8px;animation:fadeIn .3s ease}
+.sub-rank-row{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.sub-rank{width:20px;height:20px;background:#f0e5a0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#6b5000;flex-shrink:0}
+.sub-name{font-size:13px;font-weight:500}
+.sub-en{font-size:11px;color:var(--muted)}
+.sub-avail{margin-left:auto;font-size:10px;font-weight:500}
+.sub-where{font-size:11px;color:var(--muted);margin-bottom:5px}
+.sub-flavor{font-size:11px;color:#6b4200;background:#fef3c0;padding:5px 9px;border-radius:7px;line-height:1.6}
+.sub-ratio{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* ====== INVENTORY PAGE ====== */
+.inv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.inv-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center;box-shadow:var(--shadow)}
+.inv-stat-num{font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;line-height:1}
+.inv-stat-label{font-size:11px;color:var(--muted);margin-top:4px;font-weight:300}
+.inv-stat.ok .inv-stat-num{color:var(--green)}
+.inv-stat.low .inv-stat-num{color:var(--yellow)}
+.inv-stat.out .inv-stat-num{color:var(--red)}
+
+.inv-item{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface);border:1px solid var(--border);border-radius:11px;margin-bottom:8px;box-shadow:var(--shadow);animation:fadeIn .3s ease both;transition:all .2s}
+.inv-item:hover{box-shadow:var(--shadow-lg)}
+.inv-item-info{flex:1;min-width:0}
+.inv-item-name{font-size:14px;font-weight:500}
+.inv-item-en{font-size:11px;color:var(--muted);font-weight:300}
+.inv-item-qty{font-size:13px;font-weight:500;color:var(--ink2)}
+.inv-item-unit{font-size:11px;color:var(--muted)}
+.inv-bar-wrap{flex:1;max-width:100px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.inv-bar{height:100%;border-radius:3px;transition:width .5s ease}
+.inv-bar.full{background:var(--green-mid)}
+.inv-bar.half{background:var(--yellow)}
+.inv-bar.low{background:var(--red)}
+.inv-actions{display:flex;gap:5px;flex-shrink:0}
+.inv-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.inv-btn:hover{border-color:var(--green);background:var(--green-light)}
+.inv-btn.del:hover{border-color:var(--red);background:var(--red-light)}
+
+/* Receipt items from AI */
+.receipt-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--blue-light);border:1px solid #a0cff0;border-radius:9px;margin-bottom:6px;animation:fadeIn .3s ease}
+.receipt-item-name{flex:1;font-size:13px;font-weight:500}
+.receipt-item-qty{font-size:12px;color:var(--blue);font-weight:500}
+.receipt-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--green)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+.modal{background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);animation:fadeIn .25s ease}
+.modal h3{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:16px;font-weight:400}
+.modal-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-end}
+.modal-row .field{flex:1;margin-bottom:0}
+.modal-footer{display:flex;gap:8px;margin-top:14px}
+.modal-footer .btn{margin-top:0}
+
+/* COMMUNITY */
+.submit-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:var(--shadow)}
+.submit-toggle{display:flex;align-items:center;gap:9px;cursor:pointer}
+.submit-toggle-icon{width:30px;height:30px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.submit-toggle-text{font-size:13px;font-weight:500}
+.submit-toggle-sub{font-size:11px;color:var(--muted);font-weight:300}
+.submit-arrow{margin-left:auto;color:var(--muted);transition:transform .2s}
+.submit-arrow.open{transform:rotate(180deg)}
+.submit-form{display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
+.submit-form.open{display:block}
+.submit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.submit-grid{grid-template-columns:1fr}}
+.star-picker{display:flex;gap:4px;margin-top:3px}
+.star-pick{font-size:20px;cursor:pointer;opacity:.2;transition:all .15s;user-select:none}
+.star-pick.on{opacity:1}
+.star-pick:hover{transform:scale(1.2)}
+.sentiment-toggle{display:flex;gap:7px;margin-top:3px}
+.sent-btn{flex:1;padding:8px;border-radius:9px;border:2px solid var(--border);background:transparent;cursor:pointer;font-size:12px;font-family:'Noto Sans SC',sans-serif;transition:all .15s;font-weight:500}
+.sent-btn.good-active{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.sent-btn.bad-active{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.upload-mini{border:1.5px dashed var(--border);border-radius:9px;padding:10px;text-align:center;cursor:pointer;position:relative;background:var(--surface2);transition:all .2s;font-size:11px;color:var(--muted)}
+.upload-mini:hover{border-color:var(--green)}
+.upload-mini input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#review-preview{width:100%;border-radius:7px;margin-top:6px;display:none;max-height:100px;object-fit:cover}
+.mod-banner{border-radius:9px;padding:10px 12px;font-size:12px;line-height:1.6;margin-bottom:9px;display:none;animation:fadeIn .2s ease}
+.mod-banner.warn{background:var(--yellow-light);border:1px solid #f0a500;color:#7a5000}
+.mod-banner.block{background:var(--red-light);border:1px solid var(--red);color:var(--red)}
+.filter-bar{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar input{flex:1;min-width:90px;margin:0}
+.filter-bar .btn{width:auto;margin:0;padding:8px 12px;flex-shrink:0;font-size:11px}
+.feed{display:flex;flex-direction:column;gap:10px}
+.review-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);animation:fadeIn .3s ease both;transition:box-shadow .2s}
+.review-card:hover{box-shadow:var(--shadow-lg)}
+.review-top{display:flex;align-items:flex-start;gap:10px}
+.review-photo{width:60px;height:60px;border-radius:9px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.review-photo-placeholder{width:60px;height:60px;border-radius:9px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;border:1px solid var(--border)}
+.review-body{flex:1;min-width:0}
+.review-item-name{font-size:14px;font-weight:500;margin-bottom:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.review-item-en{font-size:11px;color:var(--muted);font-weight:300}
+.stars-row{display:flex;gap:1px;margin:2px 0 4px}
+.star{font-size:12px}
+.review-text{font-size:12px;color:var(--ink2);font-weight:300;line-height:1.6}
+.review-meta{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.meta-tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500}
+.tag-store{background:var(--green-light);color:var(--green)}
+.tag-zip{background:var(--surface2);color:var(--muted)}
+.sentiment-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
+.sdot-good{background:var(--green-mid)}
+.sdot-bad{background:var(--red)}
+.freshness{display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:2px 5px;border-radius:20px;font-weight:500}
+.fresh{background:var(--green-light);color:var(--green)}
+.recent{background:var(--yellow-light);color:var(--yellow)}
+.old{background:var(--surface2);color:var(--muted)}
+.vote-row{display:flex;align-items:center;gap:7px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);flex-wrap:wrap}
+.vote-btn{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:'Noto Sans SC',sans-serif;font-size:11px;cursor:pointer;transition:all .15s;color:var(--ink2)}
+.vote-btn:hover{border-color:var(--green);color:var(--green)}
+.toggle-comments-btn{font-size:11px;color:var(--muted);cursor:pointer;border:none;background:none;font-family:'Noto Sans SC',sans-serif;padding:0}
+.toggle-comments-btn:hover{color:var(--green)}
+.helpful-label{font-size:10px;color:var(--muted);margin-left:auto}
+.comments-section{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+.comments-section.open{display:block}
+.comment-item{display:flex;gap:6px;margin-bottom:6px;animation:fadeIn .2s ease}
+.comment-avatar{width:22px;height:22px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;border:1px solid var(--border)}
+.comment-bubble{background:var(--surface2);border-radius:9px;padding:6px 10px;font-size:11px;line-height:1.6;color:var(--ink2);flex:1}
+.comment-time{font-size:9px;color:var(--muted);margin-top:2px}
+.comment-input-row{display:flex;gap:6px;margin-top:6px}
+.comment-input{flex:1;padding:6px 11px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);font-family:'Noto Sans SC',sans-serif;font-size:11px;outline:none;color:var(--ink)}
+.comment-input:focus{border-color:var(--green)}
+.comment-send{padding:6px 12px;border-radius:20px;background:var(--green);color:#fff;border:none;font-size:11px;cursor:pointer;font-family:'Noto Sans SC',sans-serif}
+.empty-state{text-align:center;padding:28px 0;color:var(--muted)}
+.empty-state .big{font-size:34px;display:block;margin-bottom:8px}
+.empty-state p{font-size:13px;font-weight:300}
+
+/* Alert banner */
+.alert-banner{border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.6;margin-bottom:12px;animation:fadeIn .3s ease;display:flex;align-items:flex-start;gap:8px}
+.alert-banner.warning{background:var(--yellow-light);border:1px solid #f0a500;color:#7a4000}
+.alert-banner.info{background:var(--blue-light);border:1px solid #a0cff0;color:#1a4f7a}
+
+/* LOCATION BANNER */
+.location-banner{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:13px;animation:fadeIn .3s ease}
+.location-banner.hidden{display:none}
+.loc-pin{font-size:18px}
+.loc-text{flex:1;color:var(--ink2);font-weight:300}
+.loc-text strong{color:var(--ink);font-weight:500}
+.loc-edit-btn{font-size:11px;color:var(--green);cursor:pointer;border:1px solid var(--green);border-radius:20px;padding:3px 10px;background:transparent;font-family:'Noto Sans SC',sans-serif;transition:all .15s;white-space:nowrap}
+.loc-edit-btn:hover{background:var(--green-light)}
+
+/* LOCATION SETUP MODAL */
+.loc-modal-body{font-size:13px;color:var(--muted);margin-bottom:16px;font-weight:300;line-height:1.6}
+.loc-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.loc-option{padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;text-align:center}
+.loc-option:hover{border-color:var(--green);background:var(--green-light)}
+.loc-option.selected{border-color:var(--green);background:var(--green-light)}
+.loc-option-icon{font-size:20px;display:block;margin-bottom:4px}
+.loc-option-label{font-size:12px;font-weight:500}
+
+/* XHS URL input */
+.xhs-input-wrap{position:relative}
+.xhs-input-wrap input{padding-right:70px}
+.xhs-fetch-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:4px 10px;background:var(--red);color:#fff;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-family:'Noto Sans SC',sans-serif;font-weight:500;transition:all .15s;white-space:nowrap}
+.xhs-fetch-btn:hover{background:#a02020}
+.xhs-preview{background:linear-gradient(135deg,#ff2442,#ff6b6b);border-radius:11px;padding:14px;margin-bottom:12px;color:#fff;animation:fadeIn .3s ease;display:none}
+.xhs-preview-title{font-size:14px;font-weight:500;margin-bottom:4px}
+.xhs-preview-desc{font-size:12px;opacity:.85;line-height:1.6;margin-bottom:10px}
+.xhs-preview-use{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 12px;font-size:12px;color:#fff;cursor:pointer;font-family:'Noto Sans SC',sans-serif;font-weight:500;width:100%;transition:all .15s}
+.xhs-preview-use:hover{background:rgba(255,255,255,.35)}
+.recipe-input-mode{display:flex;gap:0;margin-bottom:8px;border-radius:9px;overflow:hidden;border:1px solid var(--border)}
+.recipe-mode-btn{flex:1;padding:7px 10px;font-size:11px;font-weight:500;cursor:pointer;border:none;background:var(--surface2);color:var(--muted);font-family:'Noto Sans SC',sans-serif;transition:all .15s}
+.recipe-mode-btn.active{background:var(--green);color:#fff}
+
+/* STORE CARDS */
+.store-filter-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:'Noto Sans SC',sans-serif;font-size:11px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s}
+.store-filter-btn:hover{border-color:var(--green);color:var(--green)}
+.store-filter-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+.store-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);animation:fadeIn .3s ease both;transition:all .2s;cursor:pointer}
+.store-card:hover{box-shadow:var(--shadow-lg);border-color:var(--green)}
+.store-card-top{display:flex;align-items:flex-start;gap:12px}
+.store-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.store-icon.asian{background:#fff0e6;border:1px solid #ffd0a0}
+.store-icon.organic{background:var(--green-light);border:1px solid var(--green-mid)}
+.store-icon.regular{background:var(--blue-light);border:1px solid #a0cff0}
+.store-name{font-size:15px;font-weight:500;margin-bottom:2px}
+.store-dist{font-size:11px;color:var(--muted);font-weight:300}
+.store-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.store-tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;background:var(--surface2);color:var(--ink2)}
+.store-tag.best{background:var(--green-light);color:var(--green)}
+.store-tag.good{background:var(--yellow-light);color:var(--yellow)}
+.store-ing-list{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:none}
+.store-ing-list.open{display:block}
+.store-ing-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.store-ing-row:last-child{border-bottom:none}
+.ing-avail{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.avail-easy{background:var(--green-mid)}
+.avail-medium{background:var(--yellow)}
+.avail-hard{background:var(--muted)}
+.ing-store-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.ing-store-row:last-child{border-bottom:none}
+.ing-store-name{flex:1;font-weight:500}
+.ing-store-rec{font-size:11px;color:var(--green);font-weight:500}
+.ing-store-where{font-size:11px;color:var(--muted)}
+
+/* STORE SELECTOR BAR */
+.store-select-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;flex-wrap:wrap;box-shadow:var(--shadow)}
+.store-select-label{font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap}
+.store-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.store-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--ink2)}
+.store-chip:hover{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.store-chip.selected{border-color:var(--green);background:var(--green);color:#fff}
+.store-custom-btn{font-size:11px;color:var(--muted);border:1px dashed var(--border);border-radius:20px;padding:5px 10px;background:transparent;cursor:pointer;font-family:'Noto Sans SC',sans-serif;transition:all .15s;white-space:nowrap}
+.store-custom-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* RESULT SECTIONS */
+.result-store-header{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border-radius:9px;margin-bottom:12px;font-size:13px;font-weight:500}
+.section-label{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.section-label.can{color:var(--green)}
+.section-label.cannot{color:var(--red)}
+.section-count{font-size:11px;padding:1px 7px;border-radius:20px;font-weight:600}
+.section-label.can .section-count{background:var(--green-light);color:var(--green)}
+.section-label.cannot .section-count{background:var(--red-light);color:var(--red)}
+.cannot-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.alt-store-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--blue-light);color:var(--blue);font-weight:500;cursor:pointer;transition:all .15s}
+.alt-store-badge:hover{background:var(--blue);color:#fff}
+
+/* CHECKLIST */
+.cl-header{margin-bottom:12px}
+.cl-title{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bottom:8px;letter-spacing:-.3px}
+.cl-progress-wrap{display:flex;align-items:center;gap:8px}
+.cl-progress-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.cl-progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s ease}
+.cl-progress-label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap}
+.cl-section-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.cl-section-label.done{color:var(--green)}
+.cl-section-label.missing{color:var(--red)}
+.cl-list{display:flex;flex-direction:column;gap:5px}
+
+/* Checklist item */
+.cl-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;transition:all .2s;animation:fadeIn .25s ease both;cursor:pointer;user-select:none}
+.cl-item:hover{border-color:var(--green);background:var(--green-light)}
+.cl-item.done{background:var(--green-light);border-color:var(--green-mid);opacity:.75}
+.cl-item.missing{background:var(--red-light);border-color:#e8a09a}
+
+/* Custom checkbox */
+.cl-checkbox{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:11px;background:#fff}
+.cl-item:hover .cl-checkbox{border-color:var(--green)}
+.cl-item.done .cl-checkbox{background:var(--green);border-color:var(--green);color:#fff}
+.cl-item.missing .cl-checkbox{background:var(--red);border-color:var(--red);color:#fff}
+
+.cl-info{flex:1;min-width:0}
+.cl-zh{font-size:13px;font-weight:500}
+.cl-item.done .cl-zh{text-decoration:line-through;color:var(--muted)}
+.cl-en{font-size:11px;color:var(--muted);font-weight:300}
+.cl-item.done .cl-en{display:none}
+
+/* Item actions (shown on hover/missing) */
+.cl-actions{display:flex;gap:4px;flex-shrink:0}
+.cl-action-btn{font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:transparent;cursor:pointer;font-family:'Noto Sans SC',sans-serif;color:var(--muted);transition:all .15s;white-space:nowrap}
+.cl-action-btn:hover{border-color:var(--red);color:var(--red)}
+.cl-action-btn.sub{border-color:var(--yellow);color:var(--yellow)}
+.cl-action-btn.sub:hover{background:var(--yellow-light)}
+
+/* Stock indicator dot */
+.cl-stock-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:var(--green-mid)}
+.dot-low{background:var(--yellow)}
+.dot-none{background:var(--border)}
+
+/* INGREDIENT DETAIL MODAL */
+#ing-detail-modal{align-items:flex-end;padding:0}
+@media(min-width:640px){#ing-detail-modal{align-items:center;padding:20px}}
+.ing-modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;position:relative;animation:slideUp .3s ease}
+@media(min-width:640px){.ing-modal{border-radius:20px;animation:fadeIn .25s ease}}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideDown{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.ing-modal-img-wrap{position:relative;height:180px;overflow:hidden;border-radius:20px 20px 0 0;background:var(--surface2)}
+.ing-modal-img-wrap img{width:100%;height:100%;object-fit:cover}
+.ing-modal-img-overlay{position:absolute;bottom:0;left:0;right:0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,.6))}
+.ing-modal-name{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;font-weight:400;letter-spacing:-.3px}
+.ing-modal-en{font-size:13px;color:rgba(255,255,255,.8);font-weight:300}
+.ing-modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.4);border:none;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}
+.ing-modal-body{padding:18px}
+.ing-modal-section{margin-bottom:18px}
+.ing-modal-section-title{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.ing-modal-text{font-size:13px;line-height:1.7;color:var(--ink2);font-weight:300}
+.ing-modal-dish-tag{display:inline-block;background:var(--green-light);color:var(--green);font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;margin-right:5px;margin-bottom:5px}
+/* Brand cards */
+.brand-list{display:flex;flex-direction:column;gap:7px}
+.brand-card{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px}
+.brand-icon{font-size:20px;flex-shrink:0}
+.brand-info{flex:1;min-width:0}
+.brand-name{font-size:13px;font-weight:500}
+.brand-desc{font-size:11px;color:var(--muted);font-weight:300}
+.brand-source{font-size:10px;padding:2px 6px;border-radius:20px;font-weight:500}
+.brand-community{background:var(--green-light);color:var(--green)}
+.brand-ai{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+/* Tap hint on cl-item */
+.cl-item .tap-hint{font-size:10px;color:var(--muted);margin-left:auto;opacity:0;transition:opacity .2s;white-space:nowrap;flex-shrink:0}
+.cl-item:hover .tap-hint{opacity:1}
+
+.ing-info-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-family:serif;font-style:italic;font-weight:700}
+.ing-info-btn:hover{border-color:var(--green);color:var(--green);background:var(--green-light)}
+
+/* Ingredient thumbnail in checklist */
+.cl-thumb{width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
+.cl-thumb-placeholder{width:36px;height:36px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+
+/* EXPIRY */
+.expiry-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;white-space:nowrap}
+.expiry-urgent{background:#fdecea;color:#c0392b;animation:pulse 1.5s infinite}
+.expiry-soon{background:#fef3e2;color:#e67e22}
+.expiry-ok{background:#d8f3dc;color:#2d6a4f}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.expiry-scan-zone{border:2px dashed var(--border);border-radius:11px;padding:16px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--surface2);margin-bottom:10px}
+.expiry-scan-zone:hover{border-color:var(--green);background:var(--green-light)}
+.expiry-scan-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.notif-banner{border-radius:12px;padding:12px 14px;margin-bottom:10px;animation:fadeIn .3s ease;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:all .15s}
+.notif-banner:hover{opacity:.85}
+.notif-urgent{background:#fdecea;border:1px solid #e8a09a}
+.notif-soon{background:#fef3e2;border:1px solid #f0a500}
+.notif-icon{font-size:20px;flex-shrink:0}
+.notif-text{flex:1;font-size:12px;line-height:1.6}
+.notif-title{font-weight:600;font-size:13px;margin-bottom:2px}
+.notif-dismiss{font-size:16px;color:var(--muted);cursor:pointer;flex-shrink:0;line-height:1}
+
+/* VARIANT PICKER */
+.variant-card{padding:12px 14px;border:1.5px solid var(--border);border-radius:11px;cursor:pointer;transition:all .15s;text-align:left;background:var(--surface);width:100%}
+.variant-card:hover{border-color:var(--green);background:var(--green-light)}
+.variant-name{font-size:14px;font-weight:500;margin-bottom:3px}
+.variant-desc{font-size:11px;color:var(--muted);font-weight:300;line-height:1.5}
+.variant-tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.variant-tag{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--ink2);border:1px solid var(--border)}
+.variant-tag.highlight{background:var(--green-light);color:var(--green);border-color:var(--green-mid)}
+
+/* ── APP HEADER ── */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 18px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.app-logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--green);letter-spacing:-.3px}
+.app-logo span{color:var(--ink)}
+.header-avatar{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .15s}
+.header-avatar:hover{border-color:var(--green);color:var(--green)}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;flex-direction:row;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;cursor:pointer;color:var(--muted);transition:color .15s;gap:3px;-webkit-tap-highlight-color:transparent}
+.bottom-tab span{font-size:10px;font-weight:500;font-family:'Noto Sans SC',sans-serif}
+.bottom-tab svg{transition:transform .15s}
+.bottom-tab:active svg{transform:scale(.88)}
+.bottom-tab.active{color:var(--green)}
+.bottom-tab.active span{font-weight:700}
+
+/* ── SLIDE MENU ── */
+.menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(2px)}
+.menu-overlay.open{opacity:1;pointer-events:all}
+.slide-menu{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:201;padding:8px 0 calc(24px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:0 -8px 40px rgba(0,0,0,.15)}
+.slide-menu.open{transform:translateY(0)}
+.slide-menu-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.slide-menu-item{display:flex;align-items:center;gap:14px;padding:13px 22px;cursor:pointer;transition:background .15s}
+.slide-menu-item:hover{background:var(--surface2)}
+.slide-menu-icon{font-size:22px;width:28px;text-align:center;flex-shrink:0}
+.slide-menu-label{font-size:14px;font-weight:500;color:var(--ink)}
+.slide-menu-sub{font-size:11px;color:var(--muted);font-weight:300;margin-top:1px}
+.slide-menu-divider{height:1px;background:var(--border);margin:6px 20px}
+
+/* adjust page padding for bottom nav */
+
+</style>
+</head>
+<body>
+
+<!-- TOP HEADER: logo + menu icon only -->
+<header class="app-header">
+  <div class="app-logo">买<span>什么</span></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="header-avatar" onclick="openMenu()" title="菜单">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- SLIDE-UP MENU -->
+<div class="menu-overlay" id="menu-overlay" onclick="closeMenu()"></div>
+<div class="slide-menu" id="slide-menu">
+  <div class="slide-menu-handle"></div>
+  <div class="slide-menu-item" onclick="switchTab('sub');closeMenu()">
+    <span class="slide-menu-icon">🔄</span>
+    <div><div class="slide-menu-label">找替代品</div><div class="slide-menu-sub">买不到的食材找替换</div></div>
+  </div>
+  <div class="slide-menu-item" onclick="switchTab('stores');closeMenu()">
+    <span class="slide-menu-icon">🏪</span>
+    <div><div class="slide-menu-label">附近超市</div><div class="slide-menu-sub">查看附近适合的超市</div></div>
+  </div>
+  <div class="slide-menu-divider"></div>
+  <div class="slide-menu-item" onclick="openLocModal();closeMenu()">
+    <span class="slide-menu-icon">📍</span>
+    <div><div class="slide-menu-label">我的位置</div><div class="slide-menu-sub" id="menu-loc-label">未设置</div></div>
+  </div>
+  <div class="slide-menu-item" style="opacity:.45;cursor:default">
+    <span class="slide-menu-icon">👤</span>
+    <div><div class="slide-menu-label">登录 / 账号</div><div class="slide-menu-sub">即将推出</div></div>
+    <span style="font-size:10px;background:var(--surface2);padding:2px 8px;border-radius:20px;color:var(--muted);margin-left:auto">即将推出</span>
+  </div>
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<nav class="bottom-nav">
+  <div class="bottom-tab active" id="tab-recipe" onclick="switchTab('recipe')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+    <span>菜谱</span>
+  </div>
+  <div class="bottom-tab" id="tab-scan" onclick="switchTab('scan')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+    <span>扫描</span>
+  </div>
+  <div class="bottom-tab" id="tab-inventory" onclick="switchTab('inventory')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>库存</span>
+  </div>
+  <div class="bottom-tab" id="tab-community" onclick="switchTab('community')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    <span>社区</span>
+  </div>
+  <div class="bottom-tab" id="tab-menu" onclick="openMenu()">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <span>更多</span>
+  </div>
+</nav>
+
+<!-- LOCATION BANNER -->
+<div class="location-banner hidden" id="loc-banner">
+  <span class="loc-pin">📍</span>
+  <div class="loc-text">你在 <strong id="loc-display">—</strong></div>
+  <button class="loc-edit-btn" onclick="openLocModal()">修改位置</button>
+</div>
+
+<!-- LOCATION MODAL -->
+<div class="modal-overlay" id="loc-modal">
+  <div class="modal">
+    <h3>📍 告诉我你在哪里</h3>
+    <div class="loc-modal-body">这样我可以推荐附近的超市，并告诉你哪里更容易买到某种食材。</div>
+    <div class="field">
+      <label>城市或 Zipcode</label>
+      <input type="text" id="loc-input" placeholder="例如：Seattle 或 98105" onkeydown="if(event.key==='Enter')saveLocation()">
+    </div>
+    <div class="field">
+      <label>常去的超市类型</label>
+      <div class="loc-options">
+        <div class="loc-option" id="loc-opt-regular" onclick="selectStoreType('regular')">
+          <span class="loc-option-icon">🛒</span>
+          <div class="loc-option-label">普通超市</div>
+          <div style="font-size:10px;color:var(--muted)">Walmart / Target</div>
+        </div>
+        <div class="loc-option" id="loc-opt-asian" onclick="selectStoreType('asian')">
+          <span class="loc-option-icon">🏮</span>
+          <div class="loc-option-label">亚裔超市</div>
+          <div style="font-size:10px;color:var(--muted)">H Mart / 99Ranch</div>
+        </div>
+        <div class="loc-option" id="loc-opt-whole" onclick="selectStoreType('whole')">
+          <span class="loc-option-icon">🌿</span>
+          <div class="loc-option-label">有机超市</div>
+          <div style="font-size:10px;color:var(--muted)">Whole Foods</div>
+        </div>
+        <div class="loc-option" id="loc-opt-any" onclick="selectStoreType('any')">
+          <span class="loc-option-icon">🗺️</span>
+          <div class="loc-option-label">都会去</div>
+          <div style="font-size:10px;color:var(--muted)">综合推荐</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('loc-modal')" style="flex:1">跳过</button>
+      <button class="btn btn-primary" onclick="saveLocation()" style="flex:1">✓ 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== RECIPE PAGE ====== -->
+<div class="page active" id="page-recipe">
+  <div class="page-header">
+    <h1>输入菜谱，<em>生成购物清单</em></h1>
+    <p>进超市前生成清单，边走边勾，没买到的一键找替代</p>
+  </div>
+  <div class="two-col">
+    <!-- LEFT: input -->
+    <div class="card">
+      <div class="card-title">📝 今天做什么</div>
+      <div class="recipe-input-mode">
+        <button class="recipe-mode-btn active" id="mode-text-btn" onclick="setRecipeMode('text')">✏️ 手动输入</button>
+        <button class="recipe-mode-btn" id="mode-xhs-btn" onclick="setRecipeMode('xhs')">📕 小红书链接</button>
+      </div>
+      <div id="recipe-text-mode">
+        <div class="field">
+          <textarea id="recipe-input" rows="6" placeholder="例如：红烧肉&#10;需要：五花肉、老抽、生抽、冰糖、八角&#10;&#10;或直接写食材清单也可以～"></textarea>
+        </div>
+      </div>
+      <div id="recipe-xhs-mode" style="display:none">
+        <div class="field">
+          <label>粘贴小红书菜谱链接</label>
+          <div class="xhs-input-wrap">
+            <input type="text" id="xhs-url-input" placeholder="https://www.xiaohongshu.com/...">
+            <button class="xhs-fetch-btn" onclick="fetchXHS()">获取</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:5px">失败时可复制正文粘贴到「手动输入」</div>
+        </div>
+        <div class="xhs-preview" id="xhs-preview">
+          <div class="xhs-preview-title" id="xhs-title"></div>
+          <div class="xhs-preview-desc" id="xhs-desc"></div>
+          <button class="xhs-preview-use" onclick="useXHSContent()">✦ 用这个菜谱生成购物清单</button>
+        </div>
+        <div class="field" style="display:none" id="xhs-manual-fallback">
+          <label style="color:var(--red)">⚠️ 链接获取失败</label>
+          <textarea id="xhs-paste-input" rows="4" placeholder="请手动复制小红书菜谱文字粘贴到这里…"></textarea>
+          <button class="btn btn-primary" onclick="useXHSPaste()" style="margin-top:6px"><span>✦ 解析粘贴内容</span></button>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()"><span id="parse-text">✦ 生成购物清单</span></button>
+      <div class="progress" id="parse-prog"><div class="progress-fill" id="parse-fill"></div></div>
+    </div>
+
+    <!-- RIGHT: checklist -->
+    <div class="card" id="checklist-card">
+      <div id="checklist-empty">
+        <div class="empty-state" style="padding:24px 0">
+          <span class="big">🛒</span>
+          <p>输入菜谱后<br>这里生成购物清单</p>
+        </div>
+      </div>
+
+      <div id="checklist-container" style="display:none">
+        <!-- Progress bar -->
+        <div class="cl-header">
+          <div class="cl-title" id="cl-dish-name">购物清单</div>
+          <div class="cl-progress-wrap">
+            <div class="cl-progress-bar"><div class="cl-progress-fill" id="cl-prog-fill"></div></div>
+            <div class="cl-progress-label" id="cl-prog-label">0 / 0</div>
+          </div>
+        </div>
+
+        <!-- Unchecked items -->
+        <div id="cl-todo-section">
+          <div class="cl-section-label">待购买</div>
+          <div id="cl-todo-list" class="cl-list"></div>
+        </div>
+
+        <!-- Checked items -->
+        <div id="cl-done-section" style="display:none;margin-top:12px">
+          <div class="cl-section-label done">已买到 ✓</div>
+          <div id="cl-done-list" class="cl-list"></div>
+        </div>
+
+        <!-- Missing items -->
+        <div id="cl-missing-section" style="display:none;margin-top:12px">
+          <div class="cl-section-label missing">没买到</div>
+          <div id="cl-missing-list" class="cl-list"></div>
+        </div>
+
+        <!-- Deduct inventory button (shows when shopping complete) -->
+        <div id="cl-deduct-banner" style="display:none;margin-top:14px;background:var(--green-light);border:1px solid var(--green-mid);border-radius:12px;padding:12px 14px">
+          <div style="font-size:13px;font-weight:500;color:var(--green);margin-bottom:4px">🎉 购物完成！</div>
+          <div style="font-size:12px;color:var(--ink2);font-weight:300;margin-bottom:10px">要把今天买的食材加入家庭库存吗？</div>
+          <button class="btn btn-primary" onclick="deductAndAddInventory()" style="margin-top:0;font-size:12px;background:var(--green)">📦 更新我的库存</button>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-outline" onclick="resetChecklist()" style="flex:1;margin-top:0;font-size:12px">↺ 重置</button>
+          <button class="btn btn-primary" onclick="parseRecipe()" style="flex:1;margin-top:0;font-size:12px">✦ 重新生成</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom store modal -->
+<div class="modal-overlay" id="custom-store-modal">
+  <div class="modal">
+    <h3>输入超市名称</h3>
+    <div class="field" style="margin-top:12px">
+      <input type="text" id="custom-store-input" placeholder="例如：Costco、Trader Joe's…" onkeydown="if(event.key==='Enter')saveCustomStore()">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('custom-store-modal')" style="flex:1">取消</button>
+      <button class="btn btn-primary" onclick="saveCustomStore()" style="flex:1">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SCAN PAGE ====== -->
+<div class="page" id="page-scan">
+  <div class="page-header">
+    <h1>拍照识别，<em>实时匹配</em>购物清单</h1>
+    <p>站在货架前拍一张，AI告诉你这是不是你要找的</p>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">📷 拍照上传</div>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" accept="image/*" capture="environment" onchange="handleScan(event)">
+        <span class="upload-icon">📸</span>
+        <div class="upload-text"><strong>点击拍照</strong>或上传图片</div>
+      </div>
+      <img id="preview-img" alt="">
+      <div class="progress" id="scan-prog"><div class="progress-fill" id="scan-fill"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔍 识别结果</div>
+      <div id="scan-empty"><div class="empty-state"><span class="big">👀</span><p>上传图片后<br>结果显示在这里</p></div></div>
+      <div class="result-box" id="result-box">
+        <div class="result-status-label" id="result-label"></div>
+        <div class="result-text" id="result-text"></div>
+        <div class="result-tip" id="result-tip"></div>
+      </div>
+      <div id="scan-list-section" style="display:none;margin-top:12px">
+        <div class="card-title" style="margin-bottom:7px">📋 当前购物清单</div>
+        <div class="ing-list" id="scan-ing-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SUBSTITUTE PAGE ====== -->
+<div class="page" id="page-sub">
+  <div class="page-header">
+    <h1>找不到？<em>用这个替代</em></h1>
+    <p>输入买不到的食材，AI推荐替代品并告诉你风味变化</p>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">🔍 我找不到这个</div>
+      <div class="field">
+        <label>食材名称（中英文均可）</label>
+        <input type="text" id="sub-input" placeholder="例如：老抽、豆瓣酱、花椒…" onkeydown="if(event.key==='Enter')findSubs()">
+      </div>
+      <div class="field" id="sub-store-field">
+        <label>我在哪类超市？ <span id="sub-store-from-loc" style="font-size:10px;color:var(--green);font-weight:500;display:none">（来自位置设置）<span style="cursor:pointer;color:var(--muted);text-decoration:underline" onclick="document.getElementById('sub-store-from-loc').style.display='none';document.getElementById('sub-store-type').style.display='block'">修改</span></span></label>
+        <select id="sub-store-type">
+          <option value="regular">普通超市（Walmart / Kroger / Target）</option>
+          <option value="asian">亚裔超市（H Mart / 99Ranch）</option>
+          <option value="whole">Whole Foods / 有机超市</option>
+          <option value="any">不确定，都列出来</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="findSubs()"><span id="sub-btn-text">🔄 查找替代品</span></button>
+      <div class="progress" id="sub-prog"><div class="progress-fill" id="sub-fill"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">💡 替代方案</div>
+      <div id="sub-result"><div class="empty-state"><span class="big">🌶️</span><p>输入食材后<br>替代方案显示在这里</p></div></div>
+    </div>
+  </div>
+  <div id="sub-from-list" style="display:none;margin-top:14px">
+    <div class="card">
+      <div class="card-title">🧺 从购物清单快速查找</div>
+      <div class="ing-list" id="sub-list-items"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== STORES PAGE ====== -->
+<div class="page" id="page-stores">
+  <div class="page-header">
+    <h1>附近<em>超市推荐</em></h1>
+    <p id="stores-subtitle">根据你的位置推荐适合购买中餐食材的超市</p>
+  </div>
+
+  <div id="stores-no-location" style="display:none">
+    <div class="card" style="text-align:center;padding:32px">
+      <div style="font-size:40px;margin-bottom:12px">📍</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:8px">请先设置你的位置</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;font-weight:300">这样才能推荐你附近的超市</div>
+      <button class="btn btn-primary" style="max-width:200px;margin:0 auto" onclick="openLocModal()">📍 设置位置</button>
+    </div>
+  </div>
+
+  <div id="stores-content" style="display:none">
+    <!-- Summary bar -->
+    <div class="card" style="margin-bottom:16px;padding:14px 18px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:20px">📍</span>
+        <div>
+          <div style="font-size:14px;font-weight:500" id="stores-location-label">—</div>
+          <div style="font-size:12px;color:var(--muted);font-weight:300">点击超市查看可以买到的食材</div>
+        </div>
+        <button class="btn-sm btn-outline" style="margin-left:auto" onclick="openLocModal()">修改位置</button>
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="store-filter-btn active" onclick="filterStores('all')">全部</button>
+      <button class="store-filter-btn" onclick="filterStores('asian')">🏮 亚裔超市</button>
+      <button class="store-filter-btn" onclick="filterStores('organic')">🌿 有机超市</button>
+      <button class="store-filter-btn" onclick="filterStores('regular')">🛒 普通超市</button>
+    </div>
+
+    <!-- Store cards -->
+    <div id="stores-list" class="feed"></div>
+
+    <!-- Ingredient → Store mapping (shows after recipe parsed) -->
+    <div id="ing-store-map" style="display:none;margin-top:20px">
+      <div class="card">
+        <div class="card-title">🗺️ 食材去哪买</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;font-weight:300">根据你的购物清单，以下是最佳购买地点建议</div>
+        <div id="ing-store-list"></div>
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+<!-- ====== INVENTORY PAGE ====== -->
+<div class="page" id="page-inventory">
+  <div class="page-header">
+    <h1>我的<em>家庭库存</em></h1>
+    <p>拍小票自动入库 · 做菜记录用量 · 随时知道家里有什么</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="inv-summary">
+    <div class="inv-stat ok">
+      <div class="inv-stat-num" id="stat-ok">0</div>
+      <div class="inv-stat-label">充足</div>
+    </div>
+    <div class="inv-stat low">
+      <div class="inv-stat-num" id="stat-low">0</div>
+      <div class="inv-stat-label">快用完</div>
+    </div>
+    <div class="inv-stat out">
+      <div class="inv-stat-num" id="stat-out">0</div>
+      <div class="inv-stat-label">已用完</div>
+    </div>
+  </div>
+
+  <!-- Expiry notifications (shown at top if anything expiring soon) -->
+  <div id="expiry-notifications" style="margin-bottom:16px"></div>
+
+  <div class="two-col">
+    <!-- Receipt scan -->
+    <div>
+      <!-- Expiry scan card -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">📅 扫描保质期</div>
+        <div class="expiry-scan-zone" id="expiry-scan-zone">
+          <input type="file" accept="image/*" capture="environment" onchange="handleExpiryScan(event)">
+          <span style="font-size:22px">📷</span>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">拍摄食品包装上的保质期</div>
+          <div style="font-size:11px;color:var(--green);margin-top:2px">AI自动识别日期 → 选择对应食材</div>
+        </div>
+        <div class="progress" id="expiry-prog" style="display:none"><div class="progress-fill" id="expiry-fill"></div></div>
+        <div id="expiry-result"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">🧾 拍小票入库</div>
+        <div class="upload-zone" id="receipt-upload-zone">
+          <input type="file" accept="image/*" capture="environment" onchange="handleReceipt(event)">
+          <span class="upload-icon">📄</span>
+          <div class="upload-text"><strong>拍摄或上传小票</strong><br><span style="font-size:11px">AI自动识别购买的食材和数量</span></div>
+        </div>
+        <img id="receipt-preview-img" alt="">
+        <div class="progress" id="receipt-prog"><div class="progress-fill" id="receipt-fill"></div></div>
+        <div id="receipt-result"></div>
+      </div>
+
+      <!-- Manual add -->
+      <div class="card">
+        <div class="card-title">➕ 手动添加库存</div>
+        <div class="field">
+          <label>食材名称</label>
+          <input type="text" id="inv-add-zh" placeholder="例如：五花肉、老抽">
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="field" style="flex:1;margin-bottom:0">
+            <label>数量</label>
+            <input type="text" id="inv-add-qty" placeholder="例如：500">
+          </div>
+          <div class="field" style="flex:1;margin-bottom:0">
+            <label>单位</label>
+            <input type="text" id="inv-add-unit" placeholder="例如：g / 瓶 / 个">
+          </div>
+        </div>
+        <div class="field" style="margin-top:8px">
+          <label>保质期（可选）</label>
+          <input type="date" id="inv-add-expiry" style="font-family:inherit">
+        </div>
+        <button class="btn btn-primary" onclick="manualAddInventory()" style="margin-top:10px">➕ 加入库存</button>
+      </div>
+    </div>
+
+    <!-- Inventory list -->
+    <div class="card">
+      <div class="card-title">📦 当前库存 <button class="btn-sm btn-outline" style="margin-left:auto;margin-top:0" onclick="clearInventory()">清空</button></div>
+      <div id="inv-list">
+        <div class="empty-state"><span class="big">📦</span><p>还没有库存<br>拍小票或手动添加</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== COMMUNITY PAGE ====== -->
+<div class="page" id="page-community">
+  <div class="page-header">
+    <h1>社区<em>食材情报</em></h1>
+    <p>留学生互帮互助 · 记录你在超市的发现</p>
+  </div>
+  <div class="submit-panel">
+    <div class="submit-toggle" onclick="toggleSubmit()">
+      <div class="submit-toggle-icon">✍️</div>
+      <div>
+        <div class="submit-toggle-text">分享你的发现</div>
+        <div class="submit-toggle-sub">告诉大家哪里有好吃的食材</div>
+      </div>
+      <div class="submit-arrow" id="submit-arrow">▾</div>
+    </div>
+    <div class="submit-form" id="submit-form">
+      <div class="submit-grid">
+        <div class="field"><label>食材名称（中文）</label><input type="text" id="r-item-zh" placeholder="例如：草莓、五花肉"></div>
+        <div class="field"><label>英文名（可选）</label><input type="text" id="r-item-en" placeholder="例如：Strawberry"></div>
+        <div class="field"><label>超市名称</label><input type="text" id="r-store" placeholder="例如：Whole Foods, H Mart"></div>
+        <div class="field"><label>Zipcode</label><input type="text" id="r-zip" placeholder="例如：98105" maxlength="5"></div>
+      </div>
+      <div class="field">
+        <label>你的评价</label>
+        <div class="sentiment-toggle">
+          <button class="sent-btn" id="sent-good" onclick="setSentiment('good')">👍 推荐购买</button>
+          <button class="sent-btn" id="sent-bad" onclick="setSentiment('bad')">👎 不太推荐</button>
+        </div>
+      </div>
+      <div class="submit-grid">
+        <div class="field">
+          <label>星级评分</label>
+          <div class="star-picker">
+            <span class="star-pick" onclick="setStar(1)">★</span>
+            <span class="star-pick" onclick="setStar(2)">★</span>
+            <span class="star-pick" onclick="setStar(3)">★</span>
+            <span class="star-pick" onclick="setStar(4)">★</span>
+            <span class="star-pick" onclick="setStar(5)">★</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>拍张照片（可选）</label>
+          <div class="upload-mini">
+            <input type="file" accept="image/*" onchange="handleReviewPhoto(event)">
+            📷 点击上传
+            <img id="review-preview" alt="">
+          </div>
+        </div>
+      </div>
+      <div class="field"><label>一句话描述</label><textarea id="r-text" rows="2" placeholder="例如：今天的草莓超级甜！强烈推荐～"></textarea></div>
+      <div class="mod-banner" id="mod-banner"></div>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitReview()"><span id="submit-btn-text">📮 发布到社区</span></button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="filter-zip" placeholder="📍 Zipcode" style="max-width:120px" oninput="renderFeed()">
+    <input type="text" id="filter-store" placeholder="超市名称" oninput="renderFeed()">
+    <input type="text" id="filter-item" placeholder="食材名" oninput="renderFeed()">
+    <button class="btn btn-outline" onclick="clearFilters()">清除</button>
+  </div>
+  <div class="feed" id="community-feed"><div class="empty-state"><span class="big">🌱</span><p>还没有评价<br>来分享第一条！</p></div></div>
+</div>
+
+<!-- USE MODAL (deduct inventory) -->
+<div class="modal-overlay" id="use-modal">
+  <div class="modal">
+    <h3>记录用量</h3>
+    <div id="use-modal-label" style="font-size:13px;color:var(--muted);margin-bottom:12px"></div>
+    <!-- Recipe suggestions -->
+    <div id="use-recipe-hint" style="display:none;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.5px">根据当前菜谱</div>
+      <div id="use-recipe-suggestions" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <!-- Quick amount buttons -->
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.5px">快速选择</div>
+      <div id="use-quick-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div class="field">
+      <label>自定义用量</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="use-qty" placeholder="0" style="max-width:100px;font-size:16px" inputmode="decimal">
+        <span id="use-unit-label" style="font-size:14px;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('use-modal')" style="flex:1">取消</button>
+      <button class="btn btn-primary" onclick="confirmUse()" style="flex:1">✓ 确认扣减</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== STATE ======
+let shoppingList = [], currentStar = 0, currentSentiment = '', reviewPhotoData = null, submitOpen = false;
+let inventory = {}; // {zh: {zh, en, qty, unit, maxQty}}
+let currentUseItem = null;
+let userLocation = { city: '', zip: '', storeType: 'any' }; // user location state
+let xhsContent = ''; // fetched XHS content
+let recipeMode = 'text'; // 'text' | 'xhs'
+
+
+// ====== STORE SELECTOR ======
+let currentStore = null; // {id, name, icon, type, specialties}
+
+const QUICK_STORES = [
+  {id:'hmart', name:'H Mart', icon:'🏮', type:'asian', specialties:['五花肉','豆腐','韩国辣酱','冬菇','年糕','泡菜','紫菜','鱼糕','生抽','老抽','冬瓜','荷兰豆','藕','粉丝','芝麻油','花椒','八角','桂皮','香叶','干辣椒','豆瓣酱','蚝油','绍兴酒','米醋','白糖','冰糖']},
+  {id:'99ranch', name:'99Ranch', icon:'🏮', type:'asian', specialties:['五花肉','生抽','老抽','豆腐','青菜','冬瓜','荷兰豆','藕','粉丝','芝麻油','花椒','八角','桂皮','香叶','干辣椒','蚝油','绍兴酒','米醋','冰糖','白糖','姜','蒜','葱']},
+  {id:'wholefoods', name:'Whole Foods', icon:'🌿', type:'organic', specialties:['有机蔬菜','草饲牛肉','生姜','蒜','柠檬草','椰奶','有机鸡蛋','西兰花','菠菜','胡萝卜','洋葱','芹菜','猪肉','鸡肉','三文鱼']},
+  {id:'walmart', name:'Walmart', icon:'🛒', type:'regular', specialties:['鸡蛋','猪肉','鸡肉','牛肉','洋葱','大蒜','生姜','土豆','胡萝卜','白菜','盐','黑胡椒','食用油','面粉','大米']},
+  {id:'target', name:'Target', icon:'🎯', type:'regular', specialties:['鸡蛋','猪肉','鸡肉','洋葱','大蒜','生姜','土豆','胡萝卜','白菜','盐','食用油']},
+  {id:'traderjoes', name:"Trader Joe's", icon:'🌺', type:'organic', specialties:['有机蔬菜','鸡肉','牛肉','椰奶','生姜','蒜','洋葱','芹菜','西兰花','菠菜','三文鱼']},
+];
+
+// Returns true if a store specialties list covers an ingredient
+function storeHasIngredient(store, ingZh) {
+  if (!store) return null; // unknown
+  return store.specialties.some(s => s.includes(ingZh) || ingZh.includes(s));
+}
+
+// Find best alternate store for an ingredient
+function bestAlternateStore(ingZh) {
+  if (!currentStore) return null;
+  const others = QUICK_STORES.filter(s => s.id !== currentStore.id && storeHasIngredient(s, ingZh));
+  return others[0] || null;
+}
+
+function renderStoreChips() {
+  const container = document.getElementById('store-chips');
+  if (!container) return;
+  const cityStores = userLocation.city ? QUICK_STORES : QUICK_STORES.slice(0, 4);
+  container.innerHTML = cityStores.map(s => {
+    const imgUrl = STORE_IMGS[s.id];
+    const isSelected = currentStore?.id === s.id;
+    return `<div class="store-chip ${isSelected ? 'selected' : ''}" onclick="selectCurrentStore('${s.id}')">
+      ${imgUrl
+        ? `<img src="${imgUrl}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+        : `<span>${s.icon}</span>`}
+      ${s.name}
+    </div>`;
+  }).join('');
+}
+
+function selectCurrentStore(id) {
+  currentStore = QUICK_STORES.find(s => s.id === id) || null;
+  // save preference
+  try { window.storage.set('current-store', id); } catch(e) {}
+  renderStoreChips();
+  // re-render ingredients if already parsed
+  if (shoppingList.length) renderIngredients();
+}
+
+function openCustomStoreModal() {
+  document.getElementById('custom-store-input').value = '';
+  document.getElementById('custom-store-modal').classList.add('open');
+  setTimeout(() => document.getElementById('custom-store-input').focus(), 100);
+}
+
+function saveCustomStore() {
+  const name = document.getElementById('custom-store-input').value.trim();
+  if (!name) return;
+  // Create a generic store entry
+  currentStore = {id:'custom-'+Date.now(), name, icon:'🏪', type:'regular', specialties:['鸡蛋','猪肉','鸡肉','蔬菜','洋葱','大蒜','盐','食用油']};
+  closeModal('custom-store-modal');
+  renderStoreChips();
+  if (shoppingList.length) renderIngredients();
+}
+
+async function loadCurrentStore() {
+  try {
+    const r = await window.storage.get('current-store');
+    if (r?.value) currentStore = QUICK_STORES.find(s => s.id === r.value) || null;
+  } catch(e) {}
+  renderStoreChips();
+}
+
+// ====== LOCATION ======
+function openLocModal() {
+  document.getElementById('loc-input').value = userLocation.city || userLocation.zip || '';
+  selectStoreType(userLocation.storeType || 'any');
+  document.getElementById('loc-modal').classList.add('open');
+}
+
+function selectStoreType(type) {
+  userLocation.storeType = type;
+  ['regular','asian','whole','any'].forEach(t => {
+    document.getElementById('loc-opt-' + t)?.classList.toggle('selected', t === type);
+  });
+}
+
+async function saveLocation() {
+  const val = document.getElementById('loc-input').value.trim();
+  if (!val) { closeModal('loc-modal'); return; }
+  
+  // Detect if zipcode or city
+  if (/^\d{5}$/.test(val)) {
+    userLocation.zip = val; userLocation.city = val;
+  } else {
+    userLocation.city = val; userLocation.zip = '';
+  }
+  
+  try {
+    await window.storage.set('user-location', JSON.stringify(userLocation));
+  } catch(e) { window._loc = userLocation; }
+  
+  updateLocationBanner();
+  closeModal('loc-modal');
+}
+
+function updateLocationBanner() {
+  const banner = document.getElementById('loc-banner');
+  const display = document.getElementById('loc-display');
+  if (userLocation.city) {
+    const storeLabels = {regular:'普通超市', asian:'亚裔超市', whole:'Whole Foods', any:'各类超市'};
+    display.textContent = userLocation.city + ' · ' + (storeLabels[userLocation.storeType] || '');
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+async function loadLocation() {
+  try {
+    const r = await window.storage.get('user-location');
+    if (r) userLocation = JSON.parse(r.value);
+  } catch(e) { userLocation = window._loc || { city: '', zip: '', storeType: 'any' }; }
+  updateLocationBanner();
+  // GPS handles location now - no manual modal on first visit
+}
+
+// ====== XHS / RECIPE MODE ======
+function setRecipeMode(mode) {
+  recipeMode = mode;
+  document.getElementById('recipe-text-mode').style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('recipe-xhs-mode').style.display = mode === 'xhs' ? 'block' : 'none';
+  document.getElementById('mode-text-btn').classList.toggle('active', mode === 'text');
+  document.getElementById('mode-xhs-btn').classList.toggle('active', mode === 'xhs');
+}
+
+async function fetchXHS() {
+  const url = document.getElementById('xhs-url-input').value.trim();
+  if (!url) return;
+  
+  const btn = document.querySelector('.xhs-fetch-btn');
+  btn.textContent = '…'; btn.disabled = true;
+  document.getElementById('xhs-preview').style.display = 'none';
+  document.getElementById('xhs-manual-fallback').style.display = 'none';
+  
+  try {
+    // Try to fetch via a CORS proxy approach - ask Claude to extract from URL
+    // Since XHS blocks direct fetch, we use Claude with web search to get the content
+    const t = await callClaude(
+      [{role:'user', content:'请帮我获取并解析这个小红书菜谱页面的内容，提取菜名和食材列表：' + url}],
+      '你是一个帮助解析网页菜谱的助手。用户提供了一个小红书URL。如果你无法访问该URL，请明确说"无法获取"。如果能获取，请提取菜名和食材信息，返回JSON：{"success":true,"title":"菜名","description":"简介","ingredients_text":"食材文字列表"}。如果无法获取则返回：{"success":false}',
+      800
+    );
+    const r = parseJSON(t);
+    
+    if (r.success && r.title) {
+      xhsContent = r.title + '\n' + (r.description || '') + '\n食材：' + (r.ingredients_text || '');
+      document.getElementById('xhs-title').textContent = '📕 ' + r.title;
+      document.getElementById('xhs-desc').textContent = r.ingredients_text || r.description || '';
+      document.getElementById('xhs-preview').style.display = 'block';
+    } else {
+      // Fallback to manual paste
+      document.getElementById('xhs-manual-fallback').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('xhs-manual-fallback').style.display = 'block';
+  }
+  
+  btn.textContent = '获取'; btn.disabled = false;
+}
+
+function useXHSContent() {
+  if (xhsContent) {
+    setRecipeMode('text');
+    document.getElementById('recipe-input').value = xhsContent;
+    parseRecipe();
+  }
+}
+
+function useXHSPaste() {
+  const text = document.getElementById('xhs-paste-input').value.trim();
+  if (!text) return;
+  setRecipeMode('text');
+  document.getElementById('recipe-input').value = text;
+  parseRecipe();
+}
+
+// ====== TABS ======
+function openMenu() {
+  document.getElementById('menu-overlay').classList.add('open');
+  document.getElementById('slide-menu').classList.add('open');
+  const locLabel = document.getElementById('menu-loc-label');
+  if (locLabel) locLabel.textContent = userLocation.city ? userLocation.city + ' · ' + ({regular:'普通超市',asian:'亚裔超市',whole:'Whole Foods',any:'各类超市'}[userLocation.storeType]||'') : '点击设置位置';
+}
+
+function closeMenu() {
+  document.getElementById('menu-overlay').classList.remove('open');
+  document.getElementById('slide-menu').classList.remove('open');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tab)?.classList.add('active');
+
+  // Bottom nav active state
+  const tabMap = {recipe:'recipe', scan:'scan', sub:'menu', stores:'menu', inventory:'inventory', community:'community'};
+  ['recipe','scan','inventory','community','menu'].forEach(t => {
+    document.getElementById('tab-' + t)?.classList.remove('active');
+  });
+  document.getElementById('tab-' + (tabMap[tab] || 'recipe'))?.classList.add('active');
+
+  if (tab === 'community') renderFeed();
+  if (tab === 'sub') {
+    renderSubList();
+    const sel = document.getElementById('sub-store-type');
+    const hint = document.getElementById('sub-store-from-loc');
+    if (sel && userLocation.storeType && userLocation.storeType !== 'any') {
+      sel.value = userLocation.storeType;
+      if (hint) hint.style.display = 'inline';
+    }
+  }
+  if (tab === 'stores') renderStores().catch(e => console.error('renderStores error:', e));
+  if (tab === 'inventory') renderInventory();
+}
+
+// ====== API CONFIG ======
+// 部署后端代理后，把下面的URL改成你的Railway/Render域名
+// 例如：'https://maishenme-api.up.railway.app/api/claude'
+// 本地测试用：'http://localhost:3000/api/claude'
+const PROXY_URL = '/api/gemini';
+const PLACES_URL = '/api/places';
+
+// ====== API ======
+async function callClaude(messages, system, maxTokens = 1200) {
+  if (!PROXY_URL) {
+    showApiNotice();
+    throw new Error('请先配置后端代理地址');
+  }
+  let res;
+  try {
+    res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: maxTokens,
+        system,
+        messages
+      })
+    });
+  } catch(netErr) {
+    throw new Error('网络错误，无法连接服务器: ' + netErr.message);
+  }
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`服务器错误 ${res.status}: ${errText.slice(0,100)}`);
+  }
+  const data = await res.json();
+  if (data.error) throw new Error('API错误: ' + (data.error.message || JSON.stringify(data.error)));
+  return data.content?.[0]?.text || '';
+}
+
+function showApiNotice() {
+  const existing = document.getElementById('api-notice');
+  if (existing) return;
+  const notice = document.createElement('div');
+  notice.id = 'api-notice';
+  notice.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;z-index:999;max-width:320px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:fadeIn .3s ease';
+  notice.innerHTML = '⚠️ 需要配置后端代理才能使用AI功能<br><span style="font-size:11px;opacity:.7;margin-top:4px;display:block">查看 README.md 了解如何部署</span>';
+  document.body.appendChild(notice);
+  setTimeout(() => notice.remove(), 5000);
+}
+function parseJSON(t) { return JSON.parse(t.replace(/```json|```/g,'').trim()); }
+function startProg(fid, pid) {
+  const p = document.getElementById(pid), f = document.getElementById(fid);
+  p.style.display = 'block'; let w = 0;
+  const iv = setInterval(() => { w = Math.min(w + Math.random()*13, 85); f.style.width = w+'%'; }, 280);
+  return () => { clearInterval(iv); f.style.width = '100%'; setTimeout(() => { p.style.display = 'none'; f.style.width = '0%'; }, 500); };
+}
+function ldots() { return '<span class="loading-dots"><span></span><span></span><span></span></span>'; }
+
+// ====== INVENTORY STORAGE ======
+async function loadInventory() {
+  try {
+    const r = await window.storage.get('inventory-v2');
+    inventory = r ? JSON.parse(r.value) : {};
+  } catch(e) { inventory = window._inv || {}; }
+}
+async function saveInventory() {
+  try { await window.storage.set('inventory-v2', JSON.stringify(inventory)); }
+  catch(e) { window._inv = inventory; }
+}
+
+function getStockStatus(item) {
+  if (!item || item.qty <= 0) return 'none';
+  if (item.qty < item.maxQty * 0.25) return 'low';
+  return 'ok';
+}
+
+function renderInventory() {
+  const list = document.getElementById('inv-list');
+  const items = Object.values(inventory);
+  
+  const ok = items.filter(i => getStockStatus(i) === 'ok').length;
+  const low = items.filter(i => getStockStatus(i) === 'low').length;
+  const out = items.filter(i => getStockStatus(i) === 'none').length;
+  document.getElementById('stat-ok').textContent = ok;
+  document.getElementById('stat-low').textContent = low;
+  document.getElementById('stat-out').textContent = out;
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-state"><span class="big">📦</span><p>还没有库存<br>拍小票或手动添加</p></div>';
+    return;
+  }
+
+  // Sort: expiring urgent first, then out, then low, then ok
+  const sorted = [...items].sort((a,b) => {
+    const expiryA = a.expiry ? getDaysUntilExpiry(a.expiry) : 999;
+    const expiryB = b.expiry ? getDaysUntilExpiry(b.expiry) : 999;
+    if (expiryA <= 2 && expiryB > 2) return -1;
+    if (expiryB <= 2 && expiryA > 2) return 1;
+    const order = {none:0, low:1, ok:2};
+    return order[getStockStatus(a)] - order[getStockStatus(b)];
+  });
+
+  list.innerHTML = sorted.map(item => {
+    const status = getStockStatus(item);
+    const pct = item.maxQty > 0 ? Math.max(0, Math.min(100, (item.qty / item.maxQty) * 100)) : 0;
+    const barClass = pct > 50 ? 'full' : pct > 20 ? 'half' : 'low';
+    const badgeClass = status === 'ok' ? 'stock-ok' : status === 'low' ? 'stock-low' : 'stock-none';
+    const badgeText = status === 'ok' ? '充足' : status === 'low' ? '快用完' : '已用完';
+    // Expiry badge
+    let expiryHTML = '';
+    if (item.expiry) {
+      const daysLeft = getDaysUntilExpiry(item.expiry);
+      if (daysLeft <= 0) expiryHTML = `<span class="expiry-badge expiry-urgent">⚠️ 已过期</span>`;
+      else if (daysLeft <= 2) expiryHTML = `<span class="expiry-badge expiry-urgent">🔴 ${daysLeft}天后到期</span>`;
+      else if (daysLeft <= 7) expiryHTML = `<span class="expiry-badge expiry-soon">🟡 ${daysLeft}天后到期</span>`;
+      else expiryHTML = `<span class="expiry-badge expiry-ok">✓ ${daysLeft}天</span>`;
+    }
+    return `
+    <div class="inv-item">
+      <div class="inv-item-info">
+        <div class="inv-item-name">${item.zh}${item.en ? ' <span style="font-size:11px;color:var(--muted);font-weight:300">'+item.en+'</span>' : ''} ${expiryHTML}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <span class="inv-item-qty">${item.qty}</span><span class="inv-item-unit">${item.unit}</span>
+          <div class="inv-bar-wrap"><div class="inv-bar ${barClass}" style="width:${pct}%"></div></div>
+          <span class="stock-badge ${badgeClass}">${badgeText}</span>
+        </div>
+      </div>
+      <div class="inv-actions">
+        <button class="inv-btn" onclick="setExpiryDate('${item.zh}')" title="设置保质期">📅</button>
+        <button class="inv-btn" onclick="openUseModal('${item.zh}')" title="记录用量">−</button>
+        <button class="inv-btn del" onclick="deleteInventory('${item.zh}')" title="删除">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function manualAddInventory() {
+  const zh = document.getElementById('inv-add-zh').value.trim();
+  const qty = parseFloat(document.getElementById('inv-add-qty').value) || 0;
+  const unit = document.getElementById('inv-add-unit').value.trim() || '份';
+  if (!zh) return alert('请输入食材名称');
+  
+  const expiry = document.getElementById('inv-add-expiry').value || null;
+  if (inventory[zh]) {
+    inventory[zh].qty += qty;
+    inventory[zh].maxQty = Math.max(inventory[zh].maxQty, inventory[zh].qty);
+    if (expiry) inventory[zh].expiry = expiry;
+  } else {
+    inventory[zh] = { zh, en: '', qty, unit, maxQty: qty, expiry };
+  }
+  saveInventory();
+  document.getElementById('inv-add-zh').value = '';
+  document.getElementById('inv-add-qty').value = '';
+  document.getElementById('inv-add-unit').value = '';
+  document.getElementById('inv-add-expiry').value = '';
+  renderInventory();
+  checkExpiryNotifications();
+}
+
+function deleteInventory(zh) {
+  delete inventory[zh];
+  saveInventory();
+  renderInventory();
+}
+
+async function clearInventory() {
+  if (!confirm('确定要清空所有库存吗？')) return;
+  inventory = {};
+  await saveInventory();
+  renderInventory();
+}
+
+function openUseModal(zh) {
+  currentUseItem = zh;
+  const item = inventory[zh];
+  document.getElementById('use-modal-label').innerHTML = `<strong>${zh}</strong> · 当前库存：<strong>${item.qty} ${item.unit}</strong>`;
+  document.getElementById('use-qty').value = '';
+  document.getElementById('use-unit-label').textContent = item.unit;
+
+  // Quick amount buttons based on unit
+  const quickAmounts = item.unit === 'g' ? [50,100,200,500] :
+                       item.unit === 'ml' ? [50,100,250,500] :
+                       item.unit === '个' || item.unit === '颗' ? [1,2,3,5] :
+                       item.unit === '瓶' || item.unit === '罐' ? [0.25,0.5,1] :
+                       item.unit === '袋' ? [0.5,1] : [1,2,3];
+  document.getElementById('use-quick-btns').innerHTML = quickAmounts
+    .filter(n => n <= item.qty)
+    .map(n => `<button onclick="setUseQty(${n})" style="padding:6px 14px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface);font-size:13px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">${n}${item.unit}</button>`)
+    .join('');
+
+  // Recipe suggestions - find this ingredient in current shopping list
+  const recipeHint = document.getElementById('use-recipe-hint');
+  const recipeSugg = document.getElementById('use-recipe-suggestions');
+  const match = shoppingList.find(i => i.zh === zh);
+  if (match && match.typical_unit) {
+    const num = parseFloat(match.typical_unit);
+    if (num > 0) {
+      recipeHint.style.display = 'block';
+      recipeSugg.innerHTML = `<button onclick="setUseQty(${num})" style="padding:6px 14px;border:1.5px solid var(--green-mid);border-radius:20px;background:var(--green-light);color:var(--green);font-size:13px;cursor:pointer;font-weight:500">${match.typical_unit} <span style="font-size:10px;opacity:.7">· 菜谱用量</span></button>`;
+    } else {
+      recipeHint.style.display = 'none';
+    }
+  } else {
+    recipeHint.style.display = 'none';
+  }
+
+  document.getElementById('use-modal').classList.add('open');
+}
+
+function setUseQty(n) {
+  document.getElementById('use-qty').value = n;
+  // Highlight selected quick btn
+  document.querySelectorAll('#use-quick-btns button, #use-recipe-suggestions button').forEach(b => {
+    b.style.background = 'var(--surface)';
+    b.style.borderColor = 'var(--border)';
+  });
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function confirmUse() {
+  const qty = parseFloat(document.getElementById('use-qty').value) || 0;
+  if (!qty || !currentUseItem) return;
+  const item = inventory[currentUseItem];
+  item.qty = Math.max(0, item.qty - qty);
+  saveInventory();
+  closeModal('use-modal');
+  renderInventory();
+  showToast(`✓ 已扣减 ${currentUseItem} ${qty}${item.unit}`);
+}
+
+// ====== RECEIPT SCANNING ======
+async function handleReceipt(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const img = document.getElementById('receipt-preview-img');
+    img.src = ev.target.result; img.style.display = 'block';
+    await scanReceipt(ev.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function scanReceipt(dataUrl) {
+  const resultDiv = document.getElementById('receipt-result');
+  resultDiv.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:13px">'+ldots()+' 识别小票中…</div>';
+  const stop = startProg('receipt-fill', 'receipt-prog');
+  const b64 = dataUrl.split(',')[1];
+  try {
+    const t = await callClaude([{role:'user',content:[
+      {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}},
+      {type:'text', text:'请识别这张超市小票上的食材和购买数量。'}
+    ]}],
+    '识别超市小票。提取食材类商品（忽略非食材如袋子、积分等）。\n返回JSON：{"items":[{"zh":"中文食材名","en":"英文名","qty":数字,"unit":"单位如g/个/瓶/包","confidence":"high|medium|low"}]}\n只返回JSON。');
+    const r = parseJSON(t); stop();
+    
+    if (!r.items?.length) {
+      resultDiv.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:12px">没有识别到食材，请重新拍摄</p>';
+      return;
+    }
+
+    // Show items with checkboxes to select which to add
+    resultDiv.innerHTML = `
+      <div style="margin-top:12px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">选择要加入库存的食材：</div>
+        ${r.items.map((item,i) => `
+          <div class="receipt-item">
+            <input type="checkbox" class="receipt-cb" id="rcb-${i}" checked>
+            <div class="receipt-item-name">${item.zh} <span style="font-size:11px;color:var(--muted)">${item.en}</span></div>
+            <div class="receipt-item-qty">${item.qty} ${item.unit}</div>
+          </div>
+        `).join('')}
+        <button class="btn btn-blue" onclick="addReceiptToInventory(${JSON.stringify(r.items).replace(/"/g,'&quot;')})">
+          ✓ 加入库存
+        </button>
+      </div>`;
+  } catch(e) {
+    stop();
+    resultDiv.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:12px">识别失败，请重试</p>';
+  }
+}
+
+function addReceiptToInventory(items) {
+  items.forEach((item, i) => {
+    const cb = document.getElementById('rcb-' + i);
+    if (!cb || !cb.checked) return;
+    if (inventory[item.zh]) {
+      inventory[item.zh].qty += item.qty;
+      inventory[item.zh].maxQty = Math.max(inventory[item.zh].maxQty, inventory[item.zh].qty);
+    } else {
+      inventory[item.zh] = { zh: item.zh, en: item.en, qty: item.qty, unit: item.unit, maxQty: item.qty };
+    }
+  });
+  saveInventory();
+  document.getElementById('receipt-result').innerHTML = '<div class="alert-banner info">✓ 已成功加入库存！</div>';
+  document.getElementById('receipt-preview-img').style.display = 'none';
+  renderInventory();
+  switchTab('inventory');
+}
+
+// ====== RECIPE WITH STOCK CHECK ======
+async function parseRecipe() {
+  const recipe = document.getElementById('recipe-input').value.trim(); if (!recipe) return;
+  const btn = document.getElementById('parse-btn'), txt = document.getElementById('parse-text');
+  btn.disabled = true; txt.innerHTML = ldots() + ' 识别菜名';
+  const stop = startProg('parse-fill', 'parse-prog');
+
+  try {
+    // Step 1: check if dish has multiple regional variants worth asking about
+    const checkT = await callClaude(
+      [{role:'user', content: recipe}],
+      `判断用户输入的菜肴是否有多种明显不同的地区/流派做法（食材差异显著）。
+返回JSON：
+{
+  "dish": "菜名",
+  "has_variants": true或false,
+  "variants": [
+    {"name":"做法名称","region":"地区/流派","desc":"一句特色描述","key_ingredients":["特色食材1","特色食材2"],"flavor":"口味标签如麻辣/清淡/咸鲜"}
+  ]
+}
+如果has_variants为false或用户已经明确了做法，variants返回空数组。最多返回4个变体。只返回JSON。`, 600);
+
+    const check = parseJSON(checkT);
+    stop();
+    btn.disabled = false;
+    txt.textContent = '✦ 重新解析';
+
+    if (check.has_variants && check.variants?.length >= 2) {
+      // Show variant picker
+      showVariantPicker(check.dish, check.variants, recipe);
+    } else {
+      // No variants, parse directly
+      await doParseRecipe(recipe, null);
+    }
+  } catch(e) {
+    stop(); btn.disabled = false; txt.textContent = '✦ 重新解析';
+    // Fallback: parse directly without variant check
+    await doParseRecipe(recipe, null);
+  }
+}
+
+function showVariantPicker(dish, variants, originalInput) {
+  document.getElementById('variant-title').textContent = dish + ' · 选择做法';
+  const list = document.getElementById('variant-list');
+  list.innerHTML = variants.map((v, i) => `
+    <button class="variant-card" onclick="pickVariant('${originalInput.replace(/'/g,"\'")}', ${i})" style="animation-delay:${i*0.06}s">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div class="variant-name">${v.name}</div>
+        <span style="font-size:10px;background:var(--surface2);padding:2px 7px;border-radius:20px;color:var(--muted)">${v.region}</span>
+      </div>
+      <div class="variant-desc">${v.desc}</div>
+      <div class="variant-tags">
+        <span class="variant-tag highlight">${v.flavor}</span>
+        ${(v.key_ingredients||[]).slice(0,3).map(ing => `<span class="variant-tag">${ing}</span>`).join('')}
+      </div>
+    </button>
+  `).join('');
+
+  // Store variants for later
+  window._currentVariants = variants;
+  window._currentDish = dish;
+  document.getElementById('variant-modal').classList.add('open');
+}
+
+async function pickVariant(originalInput, variantIdx) {
+  closeModal('variant-modal');
+  const variant = window._currentVariants?.[variantIdx];
+  const enriched = variant
+    ? `${originalInput}（${variant.name}，${variant.region}风味，特色：${variant.key_ingredients?.join('、')}）`
+    : originalInput;
+  await doParseRecipe(enriched, variant);
+}
+
+async function doParseRecipe(recipe, variant) {
+  const btn = document.getElementById('parse-btn'), txt = document.getElementById('parse-text');
+  btn.disabled = true;
+  txt.innerHTML = ldots() + ' 生成清单';
+  const stop = startProg('parse-fill', 'parse-prog');
+  const locCtx = userLocation.city ? `用户位置：${userLocation.city}，常去超市：${{regular:'普通超市(Walmart/Target)',asian:'亚裔超市(H Mart/99Ranch)',whole:'Whole Foods',any:'各类超市'}[userLocation.storeType]}。请根据此信息给出更精准的超市区域和购买建议。` : '';
+  const variantCtx = variant ? `做法是${variant.name}（${variant.region}），口味${variant.flavor}。` : '';
+
+  try {
+    const t = await callClaude([{role:'user', content:'解析食材：' + recipe}],
+      `帮助留学生在美国超市购物。${locCtx}${variantCtx}解析菜谱食材，返回JSON：{"dish":"菜名","ingredients":[{"zh":"中文名","en":"超市英文名","section":"区域如Meat/Produce/Asian aisle","tip":"一句购买提示（结合用户位置和超市类型）","typical_unit":"典型用量如500g/2个/1瓶"}]}\n只返回JSON。`);
+    const p = parseJSON(t);
+    shoppingList = p.ingredients;
+    shoppingList._dish = (variant ? variant.name + ' · ' : '') + (p.dish || '购物清单');
+    saveChecklist();
+    renderIngredients();
+    checkExpiryOnShop(shoppingList);
+    preloadIngImages(shoppingList).then(() => renderChecklist());
+    renderScanList();
+    renderSubList();
+    renderIngStoreMap();
+  } catch(e) {
+    console.error('doParseRecipe error:', e);
+    const msg = e.message || String(e);
+    document.getElementById('checklist-empty').style.display = 'block';
+    document.getElementById('checklist-empty').innerHTML = `<div class="empty-state" style="padding:24px 0"><span class="big">⚠️</span><p style="color:var(--red);font-size:12px">${msg}</p></div>`;
+    document.getElementById('checklist-container').style.display = 'none';
+  }
+  stop(); btn.disabled = false; txt.textContent = '✦ 重新解析';
+}
+
+function renderIngredients() {
+  if (!shoppingList.length) return;
+
+  document.getElementById('checklist-empty').style.display = 'none';
+  document.getElementById('checklist-container').style.display = 'block';
+
+  // Set dish name
+  const dishName = shoppingList._dish || '购物清单';
+  document.getElementById('cl-dish-name').textContent = dishName;
+
+  renderChecklist();
+}
+
+function renderChecklist() {
+  const total = shoppingList.length;
+  const checked = shoppingList.filter(i => i._state === 'done').length;
+  const missing = shoppingList.filter(i => i._state === 'missing').length;
+  const todo = shoppingList.filter(i => !i._state);
+
+  // Progress
+  document.getElementById('cl-prog-fill').style.width = (total ? (checked / total * 100) : 0) + '%';
+  document.getElementById('cl-prog-label').textContent = checked + ' / ' + total;
+
+  // TODO list
+  const todoList = document.getElementById('cl-todo-list');
+  const todoItems = shoppingList.filter(i => !i._state);
+  todoList.innerHTML = todoItems.length ? todoItems.map((ing, i) => clItemHTML(ing, i)).join('') 
+    : '<div style="font-size:12px;color:var(--green);padding:6px 0;font-weight:300">🎉 全部买完啦！</div>';
+
+  // Done list
+  const doneItems = shoppingList.filter(i => i._state === 'done');
+  const doneSection = document.getElementById('cl-done-section');
+  doneSection.style.display = doneItems.length ? 'block' : 'none';
+  document.getElementById('cl-done-list').innerHTML = doneItems.map((ing, i) => clItemHTML(ing, i)).join('');
+
+  // Missing list
+  const missingItems = shoppingList.filter(i => i._state === 'missing');
+  const missingSection = document.getElementById('cl-missing-section');
+  missingSection.style.display = missingItems.length ? 'block' : 'none';
+  document.getElementById('cl-missing-list').innerHTML = missingItems.map((ing, i) => clItemHTML(ing, i)).join('');
+
+  // Show deduct banner when all items are checked/missing (shopping done)
+  const deductBanner = document.getElementById('cl-deduct-banner');
+  const allHandled = total > 0 && shoppingList.every(i => i._state === 'done' || i._state === 'missing');
+  deductBanner.style.display = allHandled ? 'block' : 'none';
+}
+
+async function deductAndAddInventory() {
+  const doneItems = shoppingList.filter(i => i._state === 'done');
+  if (!doneItems.length) return;
+
+  doneItems.forEach(ing => {
+    const key = ing.zh;
+    if (inventory[key]) {
+      // Already exists — bump up qty (bought more)
+      const bump = parseFloat(ing.typical_unit) || 1;
+      inventory[key].qty += bump;
+      inventory[key].maxQty = Math.max(inventory[key].maxQty, inventory[key].qty);
+    } else {
+      // New item — add to inventory
+      const qty = parseFloat(ing.typical_unit) || 1;
+      const unit = ing.typical_unit?.replace(/[\d.]/g,'').trim() || '份';
+      inventory[key] = { zh: ing.zh, en: ing.en || '', qty, unit, maxQty: qty };
+    }
+  });
+
+  await saveInventory();
+  showToast('✓ 已更新库存！买到的' + doneItems.length + '种食材已入库');
+  document.getElementById('cl-deduct-banner').style.display = 'none';
+}
+
+function clItemHTML(ing, i) {
+  const state = ing._state || '';
+  const inv = inventory[ing.zh];
+  const stockDotClass = !inv || inv.qty <= 0 ? 'dot-none' : getStockStatus(inv) === 'low' ? 'dot-low' : 'dot-ok';
+  const idx = shoppingList.indexOf(ing);
+
+  let actions = '';
+  if (state === 'missing') {
+    actions = `<div class="cl-actions">
+      <button class="cl-action-btn sub" onclick="event.stopPropagation();quickSub('${ing.zh}')" >找替代</button>
+      <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'')">撤销</button>
+    </div>`;
+  } else if (state === 'done') {
+    actions = `<div class="cl-actions">
+      <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'')">撤销</button>
+    </div>`;
+  } else {
+    actions = `<div class="cl-actions" style="opacity:0;transition:opacity .15s" class="hover-actions">
+      <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'missing')">没买到</button>
+    </div>`;
+  }
+
+  const checkIcon = state === 'done' ? '✓' : state === 'missing' ? '✕' : '';
+
+  const cachedImg = imgCache[(ing.en || ing.zh) + ' food ingredient_thumb'];
+  const thumbHTML = cachedImg
+    ? `<img class="cl-thumb" src="${cachedImg}" alt="${ing.zh}" onerror="this.style.display='none'">`
+    : `<div class="cl-thumb-placeholder" id="thumb-${idx}">🥬</div>`;
+
+  // Async load thumbnail if not cached
+  if (!cachedImg) {
+    getUnsplashImg((ing.en || ing.zh) + ' food ingredient', 'thumb').then(url => {
+      if (!url) return;
+      const ph = document.getElementById('thumb-' + idx);
+      if (ph) ph.outerHTML = `<img class="cl-thumb" src="${url}" alt="${ing.zh}">`;
+    });
+  }
+
+  return `<div class="cl-item ${state}" id="cl-item-${idx}" onclick="toggleItem(${idx})">
+    <div class="cl-checkbox">${checkIcon}</div>
+    ${thumbHTML}
+    <div class="cl-info">
+      <div class="cl-zh">${ing.zh}</div>
+      <div class="cl-en">${ing.en} · ${ing.section}</div>
+    </div>
+    ${actions}
+    <button class="ing-info-btn" onclick="event.stopPropagation();openIngDetail(${idx})" title="查看详情">ℹ</button>
+  </div>`;
+}
+
+function toggleItem(idx) {
+  const ing = shoppingList[idx];
+  if (!ing) return;
+  if (!ing._state) ing._state = 'done';
+  else if (ing._state === 'done') ing._state = '';
+  saveChecklist();
+  renderChecklist();
+}
+
+function setItemState(idx, state) {
+  if (shoppingList[idx]) shoppingList[idx]._state = state;
+  saveChecklist();
+  renderChecklist();
+  if (state === 'missing') {
+    setTimeout(() => {
+      const missingNames = shoppingList.filter(i => i._state === 'missing').map(i => i.zh);
+      if (missingNames.length === 1) quickSub(missingNames[0]);
+    }, 300);
+  }
+}
+
+function resetChecklist() {
+  shoppingList.forEach(i => { delete i._state; });
+  saveChecklist();
+  renderChecklist();
+}
+
+// ── Persistence ──
+async function saveChecklist() {
+  if (!shoppingList.length) return;
+  const data = {
+    dish: shoppingList._dish || '',
+    items: shoppingList.map(i => ({...i})), // includes _state
+    savedAt: Date.now()
+  };
+  try { await window.storage.set('checklist', JSON.stringify(data)); }
+  catch(e) { window._cl = data; }
+}
+
+async function loadChecklist() {
+  try {
+    const r = await window.storage.get('checklist');
+    if (!r) return;
+    const data = JSON.parse(r.value);
+    if (!data.items?.length) return;
+    // Only restore if saved within last 24h
+    if (Date.now() - data.savedAt > 86400000) return;
+    shoppingList = data.items;
+    shoppingList._dish = data.dish;
+    renderIngredients();
+    // Show restore toast
+    showToast('✓ 已恢复上次的购物清单');
+  } catch(e) {}
+}
+
+function showToast(msg, duration = 2500) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;padding:10px 18px;border-radius:20px;font-size:12px;z-index:9999;white-space:nowrap;animation:fadeIn .3s ease;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), duration);
+}
+
+function renderScanList() {
+  const sec = document.getElementById('scan-list-section'), list = document.getElementById('scan-ing-list');
+  if (!shoppingList.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  list.innerHTML = shoppingList.map((ing,i) =>
+    `<div class="ing-item" id="scan-ing-${i}">
+      <div class="ing-dot"></div>
+      <div class="ing-zh">${ing.zh}</div><div class="ing-meta">${ing.en}</div>
+      <div class="ing-check">✓ 已找到</div>
+    </div>`).join('');
+}
+
+// ====== SCAN ======
+async function handleScan(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = async ev => {
+    const img = document.getElementById('preview-img'); img.src = ev.target.result; img.style.display = 'block';
+    document.getElementById('scan-empty').style.display = 'none';
+    await doMatch(ev.target.result);
+  };
+  r.readAsDataURL(file);
+}
+async function doMatch(dataUrl) {
+  const box = document.getElementById('result-box'), label = document.getElementById('result-label'),
+        rtext = document.getElementById('result-text'), rtip = document.getElementById('result-tip');
+  box.style.display = 'none';
+  const stop = startProg('scan-fill','scan-prog');
+  const b64 = dataUrl.split(',')[1];
+  const ctx = shoppingList.length ? '购物清单：' + shoppingList.map(i => i.zh+'('+i.en+')').join('、') : '用户没有设置购物清单';
+  try {
+    const t = await callClaude([{role:'user', content:[
+      {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}},
+      {type:'text', text:'请识别图片食材并匹配购物清单。'}
+    ]}], '帮助留学生识别超市食材。'+ctx+'\n返回JSON：{"identified":"识别结果中英文","match_status":"match|partial|no_match|no_list","matched_item":"匹配的清单项","explanation":"1-2句说明","tip":"一句购买建议"}\n只返回JSON。');
+    const r2 = parseJSON(t); stop();
+    const labels = {match:'✓ 完全匹配', partial:'◑ 部分匹配', no_match:'✗ 不在清单', no_list:'◎ 已识别'};
+    box.className = 'result-box ' + r2.match_status; box.style.display = 'block';
+    label.textContent = labels[r2.match_status] || '◎ 已识别';
+    rtext.innerHTML = '<strong>' + r2.identified + '</strong><br>' + r2.explanation + (r2.matched_item ? '<br><span style="color:var(--green);font-size:11px">→ 对应：' + r2.matched_item + '</span>' : '');
+    rtip.textContent = r2.tip ? '💡 ' + r2.tip : '';
+    if ((r2.match_status === 'match' || r2.match_status === 'partial') && r2.matched_item) {
+      const idx = shoppingList.findIndex(i => r2.matched_item.includes(i.zh) || r2.matched_item.includes(i.en));
+      if (idx >= 0) {
+        document.getElementById('ing-'+idx)?.classList.add('matched');
+        document.getElementById('scan-ing-'+idx)?.classList.add('matched');
+        // Show "mark as bought" button in result
+        const tip = document.getElementById('result-tip');
+        const ing = shoppingList[idx];
+        // Button first, tip below
+        tip.innerHTML = `<button onclick="markFromScan(${idx})" style="display:block;width:100%;padding:10px 14px;background:var(--green);color:#fff;border:none;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Noto Sans SC',sans-serif;font-weight:500;margin-bottom:6px">✓ 在购物清单里标记"已买到"</button>` +
+          (r2.tip ? `<div style="font-size:11px;color:var(--muted);font-style:italic">💡 ${r2.tip}</div>` : '');
+      }
+    }
+  } catch(e) { stop(); box.className = 'result-box no_match'; box.style.display = 'block'; label.textContent = '识别失败'; rtext.textContent = '请检查网络后重试'; rtip.textContent = ''; }
+}
+function markFromScan(idx) {
+  setItemState(idx, 'done');
+  showToast('✓ 已在购物清单标记为买到！');
+  // Briefly highlight
+  const el = document.getElementById('cl-item-' + idx);
+  if (el) { el.style.outline = '2px solid var(--green)'; setTimeout(() => el.style.outline = '', 1500); }
+}
+
+const uz = document.getElementById('upload-zone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.style.borderColor='var(--green)'; });
+uz.addEventListener('dragleave', () => uz.style.borderColor = '');
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (file?.type.startsWith('image/')) {
+    const rd = new FileReader();
+    rd.onload = async ev => { document.getElementById('preview-img').src=ev.target.result; document.getElementById('preview-img').style.display='block'; document.getElementById('scan-empty').style.display='none'; await doMatch(ev.target.result); };
+    rd.readAsDataURL(file);
+  }
+});
+
+// ====== SUBSTITUTE ======
+function renderSubList() {
+  const sec = document.getElementById('sub-from-list'), items = document.getElementById('sub-list-items');
+  if (!shoppingList.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  items.innerHTML = shoppingList.map(ing =>
+    `<div class="ing-item" style="cursor:pointer" onclick="quickSub('${ing.zh}')">
+      <div class="ing-dot"></div>
+      <div style="flex:1"><div class="ing-zh">${ing.zh}</div><div class="ing-meta">${ing.en}</div></div>
+      <span style="font-size:11px;color:var(--muted)">查找替代 →</span>
+    </div>`).join('');
+}
+function quickSub(name) { switchTab('sub'); document.getElementById('sub-input').value = name; findSubs(); }
+async function findSubs() {
+  const item = document.getElementById('sub-input').value.trim(); if (!item) return;
+  const storeType = document.getElementById('sub-store-type').value || userLocation.storeType || 'any';
+  const storeDesc = {regular:'普通美国超市（Walmart/Kroger/Target）', asian:'亚裔超市（H Mart/99Ranch）', whole:'Whole Foods等有机超市', any:'各类超市'}[storeType];
+  const btn = document.getElementById('sub-btn-text');
+  btn.innerHTML = ldots();
+  const stop = startProg('sub-fill','sub-prog');
+  const result = document.getElementById('sub-result');
+  result.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:13px">正在查找替代方案…</div>';
+  try {
+    const t = await callClaude([{role:'user', content:'我在'+storeDesc+'找不到：'+item+'，请推荐替代品'}],
+      '你是帮助留学生在美国超市购物的专家。推荐2-3个替代品。\n返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文","en":"English name","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景"}],"tip":"总体建议"}\n只返回JSON。');
+    const r = parseJSON(t); stop();
+    const ac = {'容易找到':'var(--green)', '较容易':'var(--yellow)', '可能需要找找':'var(--muted)'};
+    result.innerHTML = `<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">原食材</div><div style="font-size:15px;font-weight:500">${r.original}</div></div>` +
+      r.substitutes.map((s,i) => `<div class="sub-result-item">
+        <div class="sub-rank-row"><div class="sub-rank">${i+1}</div>
+        <div><div class="sub-name">${s.zh}</div><div class="sub-en">${s.en}</div></div>
+        <div class="sub-avail" style="color:${ac[s.availability]||'var(--muted)'}">● ${s.availability}</div></div>
+        <div class="sub-where">📍 ${s.where}</div>
+        <div class="sub-flavor">⚗️ ${s.flavor_change}</div>
+        <div class="sub-ratio">用量：${s.ratio} · 适合：${s.best_for}</div>
+      </div>`).join('') +
+      (r.tip ? `<div style="font-size:11px;color:var(--muted);margin-top:7px;font-style:italic">💡 ${r.tip}</div>` : '');
+  } catch(e) { stop(); result.innerHTML = '<p style="color:var(--muted);text-align:center;font-size:13px;padding:14px">查找失败，请重试</p>'; }
+  btn.textContent = '🔄 重新查找';
+}
+
+// ====== MODERATION ======
+async function moderateText(text) {
+  const t = await callClaude([{role:'user', content:'审核这条评价：'+text}],
+    '内容审核助手。检测脏话、人身攻击、种族歧视、明显不客观言论、无意义内容。\n返回JSON：{"status":"pass|warn|block","reason":"原因（中文）","suggestion":"修改建议（中文）"}\n只返回JSON。', 300);
+  return parseJSON(t);
+}
+
+// ====== COMMUNITY ======
+function toggleSubmit() {
+  submitOpen = !submitOpen;
+  document.getElementById('submit-form').classList.toggle('open', submitOpen);
+  document.getElementById('submit-arrow').classList.toggle('open', submitOpen);
+}
+function setStar(n) { currentStar = n; document.querySelectorAll('.star-pick').forEach((s,i) => s.classList.toggle('on', i<n)); }
+function setSentiment(s) {
+  currentSentiment = s;
+  document.getElementById('sent-good').className = 'sent-btn' + (s==='good' ? ' good-active' : '');
+  document.getElementById('sent-bad').className = 'sent-btn' + (s==='bad' ? ' bad-active' : '');
+}
+function handleReviewPhoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const rd = new FileReader();
+  rd.onload = ev => { reviewPhotoData = ev.target.result; const img = document.getElementById('review-preview'); img.src = ev.target.result; img.style.display = 'block'; };
+  rd.readAsDataURL(file);
+}
+async function submitReview() {
+  const zh=document.getElementById('r-item-zh').value.trim(), store=document.getElementById('r-store').value.trim(),
+        zip=document.getElementById('r-zip').value.trim(), reviewText=document.getElementById('r-text').value.trim();
+  const banner = document.getElementById('mod-banner');
+  if (!zh||!store||!zip||!reviewText||!currentSentiment||!currentStar) { alert('请填写所有必填项并选择星级和推荐状态'); return; }
+  const btn = document.getElementById('submit-btn-text');
+  btn.innerHTML = ldots() + ' 审核中…'; banner.style.display = 'none';
+  document.getElementById('submit-btn').onclick = submitReview;
+  let mod;
+  try { mod = await moderateText(reviewText); } catch(e) { mod = {status:'pass'}; }
+  if (mod.status === 'block') {
+    banner.className='mod-banner block'; banner.style.display='block';
+    banner.innerHTML = '<strong>⚠️ 内容无法发布：</strong>' + mod.reason;
+    btn.textContent = '📮 发布到社区'; return;
+  }
+  if (mod.status === 'warn') {
+    banner.className='mod-banner warn'; banner.style.display='block';
+    banner.innerHTML = '<strong>📝 建议修改：</strong>' + mod.reason + '<br><span style="opacity:.8">' + (mod.suggestion||'') + '</span><br><span style="font-size:11px">如认为没问题，可再次点击发布。</span>';
+    btn.textContent = '📮 确认发布';
+    document.getElementById('submit-btn').onclick = () => doSave(zh,store,zip,reviewText);
+    return;
+  }
+  await doSave(zh,store,zip,reviewText);
+}
+async function doSave(zh,store,zip,reviewText) {
+  const btn = document.getElementById('submit-btn-text');
+  btn.innerHTML = ldots() + ' 发布中…';
+  const review = {id:Date.now().toString(), zh, store, zip, en:document.getElementById('r-item-en').value.trim(),
+    sentiment:currentSentiment, stars:currentStar, text:reviewText, photo:reviewPhotoData||null,
+    timestamp:Date.now(), votes:{up:0,down:0}, comments:[]};
+  const list = await getReviews(); list.unshift(review); await saveReviews(list);
+  ['r-item-zh','r-item-en','r-store','r-zip','r-text'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('review-preview').style.display='none';
+  document.getElementById('mod-banner').style.display='none';
+  reviewPhotoData=null; currentStar=0; currentSentiment=''; setStar(0); setSentiment('');
+  btn.textContent='📮 发布到社区'; document.getElementById('submit-btn').onclick=submitReview;
+  toggleSubmit(); renderFeed();
+}
+async function vote(id,dir) {
+  const list=await getReviews(); const r=list.find(r=>r.id===id); if(!r)return;
+  if(!r.votes)r.votes={up:0,down:0}; r.votes[dir]++;
+  await saveReviews(list); renderFeed();
+}
+async function addComment(id,text) {
+  if(!text.trim())return;
+  const list=await getReviews(); const r=list.find(r=>r.id===id); if(!r)return;
+  if(!r.comments)r.comments=[];
+  r.comments.push({text:text.trim(),timestamp:Date.now(),avatar:['🧑','👩','🧒','👨','👧'][Math.floor(Math.random()*5)]});
+  await saveReviews(list); renderFeed();
+}
+function toggleComments(id) { document.getElementById('comments-'+id)?.classList.toggle('open'); }
+async function getReviews() { try { const r=await window.storage.get('reviews'); return r?JSON.parse(r.value):[]; } catch(e) { return window._r||[]; } }
+async function saveReviews(list) { try { await window.storage.set('reviews',JSON.stringify(list)); } catch(e) { window._r=list; } }
+
+function freshnessLabel(ts) {
+  const m=(Date.now()-ts)/60000;
+  if(m<60) return'<span class="freshness fresh">🟢 '+Math.floor(m)+'分钟前</span>';
+  const h=m/60; if(h<24) return'<span class="freshness fresh">🟢 '+Math.floor(h)+'小时前</span>';
+  const d=h/24; if(d<7) return'<span class="freshness recent">🟡 '+Math.floor(d)+'天前</span>';
+  const w=d/7; if(w<4) return'<span class="freshness recent">🟡 '+Math.floor(w)+'周前</span>';
+  const dt=new Date(ts); return'<span class="freshness old">⚫ '+dt.getFullYear()+'.'+(dt.getMonth()+1)+'.'+dt.getDate()+'</span>';
+}
+function starsHTML(n) { return Array.from({length:5},(_,i)=>'<span class="star" style="opacity:'+(i<n?1:.2)+'">★</span>').join(''); }
+
+async function renderFeed() {
+  const feed = document.getElementById('community-feed');
+  feed.innerHTML = '<div class="empty-state"><span class="big">⏳</span><p>加载中…</p></div>';
+  const zipF=document.getElementById('filter-zip')?.value.trim()||'',
+        storeF=document.getElementById('filter-store')?.value.trim().toLowerCase()||'',
+        itemF=document.getElementById('filter-item')?.value.trim()||'';
+  let list = await getReviews();
+  if(zipF) list=list.filter(r=>r.zip.includes(zipF));
+  if(storeF) list=list.filter(r=>r.store.toLowerCase().includes(storeF));
+  if(itemF) list=list.filter(r=>r.zh.includes(itemF)||(r.en||'').toLowerCase().includes(itemF.toLowerCase()));
+  list.sort((a,b)=>((b.votes?.up||0)-(a.votes?.up||0))||(b.timestamp-a.timestamp));
+  if(!list.length) { feed.innerHTML='<div class="empty-state"><span class="big">🌱</span><p>'+(zipF||storeF||itemF?'没有符合条件的评价':'还没有评价，来分享第一条！')+'</p></div>'; return; }
+  feed.innerHTML = list.map(r => {
+    const votes=r.votes||{up:0,down:0}, comments=r.comments||[];
+    return '<div class="review-card">'+
+      '<div class="review-top">'+
+      (r.photo?'<img class="review-photo" src="'+r.photo+'" alt="">':'<div class="review-photo-placeholder">'+(r.sentiment==='good'?'😋':'😕')+'</div>')+
+      '<div class="review-body">'+
+      '<div class="review-item-name"><span class="sentiment-dot '+(r.sentiment==='good'?'sdot-good':'sdot-bad')+'"></span>'+r.zh+(r.en?'<span class="review-item-en">'+r.en+'</span>':'')+'</div>'+
+      '<div class="stars-row">'+starsHTML(r.stars)+'</div>'+
+      '<div class="review-text">'+r.text+'</div>'+
+      '<div class="review-meta"><span class="meta-tag tag-store">🏪 '+r.store+'</span><span class="meta-tag tag-zip">📍 '+r.zip+'</span>'+freshnessLabel(r.timestamp)+'</div>'+
+      '</div></div>'+
+      '<div class="vote-row">'+
+      '<button class="vote-btn" onclick="vote(\''+r.id+'\',\'up\')">👍 有用'+(votes.up>0?' '+votes.up:'')+'</button>'+
+      '<button class="vote-btn" onclick="vote(\''+r.id+'\',\'down\')">👎 没用'+(votes.down>0?' '+votes.down:'')+'</button>'+
+      '<button class="toggle-comments-btn" onclick="toggleComments(\''+r.id+'\')">💬 '+(comments.length>0?comments.length+'条回复':'回复')+'</button>'+
+      (votes.up>0?'<span class="helpful-label">'+votes.up+'人觉得有用</span>':'')+
+      '</div>'+
+      '<div class="comments-section" id="comments-'+r.id+'">'+
+      comments.map(c=>'<div class="comment-item"><div class="comment-avatar">'+(c.avatar||'🧑')+'</div><div class="comment-bubble">'+c.text+'<div class="comment-time">'+freshnessLabel(c.timestamp)+'</div></div></div>').join('')+
+      '<div class="comment-input-row">'+
+      '<input class="comment-input" id="cinput-'+r.id+'" placeholder="说点什么…" onkeydown="if(event.key===\'Enter\'){addComment(\''+r.id+'\',this.value);this.value=\'\'}">'+
+      '<button class="comment-send" onclick="const el=document.getElementById(\'cinput-'+r.id+'\');addComment(\''+r.id+'\',el.value);el.value=\'\'">发送</button>'+
+      '</div></div>'+
+      '</div>';
+  }).join('');
+}
+function clearFilters() { ['filter-zip','filter-store','filter-item'].forEach(id=>document.getElementById(id).value=''); renderFeed(); }
+
+
+// ====== STORES ======
+let storesData = [];
+let activeStoreFilter = 'all';
+let googleApiKey = ''; // set via promptApiKey()
+
+// Mock data — replace getNearbyStores() with real Google Places call when API key is available
+const MOCK_STORES = {
+  seattle: [
+    { id:'hmart-bellevue', name:'H Mart', type:'asian', icon:'🏮', address:'Bellevue, WA', dist:'2.1 miles',
+      specialties:['五花肉','豆腐','韩国辣酱','冬菇','年糕','泡菜','紫菜','鱼糕'],
+      rating:4.6, tags:['亚裔食材最全','中韩日食材','生鲜新鲜'] },
+    { id:'99ranch-factoria', name:'99 Ranch Market', type:'asian', icon:'🏮', address:'Factoria, Bellevue', dist:'3.4 miles',
+      specialties:['五花肉','生抽','老抽','豆腐','青菜','冬瓜','荷兰豆','藕'],
+      rating:4.4, tags:['中国食材丰富','调料齐全','进口商品'] },
+    { id:'uwajimaya', name:'Uwajimaya', type:'asian', icon:'🏮', address:'Seattle International District', dist:'4.2 miles',
+      specialties:['日式食材','豆腐','味噌','海产品','清酒','抹茶'],
+      rating:4.7, tags:['日式为主','品质高','Seattle标志性'] },
+    { id:'wholefoods-cap', name:'Whole Foods Market', type:'organic', icon:'🌿', address:'Capitol Hill, Seattle', dist:'1.8 miles',
+      specialties:['有机蔬菜','草饲牛肉','生姜','蒜','柠檬草','椰奶'],
+      rating:4.3, tags:['有机食材','品质好','价格偏高'] },
+    { id:'walmart-renton', name:'Walmart Supercenter', type:'regular', icon:'🛒', address:'Renton, WA', dist:'5.1 miles',
+      specialties:['基础调料','大葱','土豆','鸡蛋','猪肉','鸡肉'],
+      rating:3.9, tags:['价格最低','食材基础','24小时'] },
+    { id:'qfc-university', name:'QFC', type:'regular', icon:'🛒', address:'University District', dist:'0.9 miles',
+      specialties:['日常蔬菜','鸡蛋','猪肉','牛肉','洋葱','大蒜'],
+      rating:4.0, tags:['距离近','日常购物','价格适中'] },
+  ],
+  default: [
+    { id:'asian-market', name:'Asian Grocery', type:'asian', icon:'🏮', address:'附近', dist:'~3 miles',
+      specialties:['豆腐','生抽','老抽','五花肉','冬菇','粉丝'],
+      rating:4.3, tags:['亚洲食材'] },
+    { id:'whole-foods', name:'Whole Foods', type:'organic', icon:'🌿', address:'附近', dist:'~2 miles',
+      specialties:['有机蔬菜','草饲肉类','香草'],
+      rating:4.4, tags:['有机','品质高'] },
+    { id:'walmart', name:'Walmart', type:'regular', icon:'🛒', address:'附近', dist:'~4 miles',
+      specialties:['基础食材','调料','蔬菜','肉类'],
+      rating:3.8, tags:['价格低','品类全'] },
+  ]
+};
+
+function getStoreType(type) {
+  return {asian:'亚裔超市', organic:'有机超市', regular:'普通超市'}[type] || type;
+}
+
+async function promptApiKey() {
+  const key = prompt('请输入 Google Places API Key（可在 Google Cloud Console 获取）：');
+  if (key && key.trim()) {
+    googleApiKey = key.trim();
+    try { await window.storage.set('google-api-key', googleApiKey); } catch(e){}
+    renderStores();
+  }
+}
+
+function getMockStores() {
+  const city = (userLocation.city || '').toLowerCase();
+  if (city.includes('seattle') || city.includes('98105') || city.includes('98102') || city.includes('98103') || city.includes('98104') || city.includes('98107') || city.includes('bellevue')) {
+    return MOCK_STORES.seattle;
+  }
+  return MOCK_STORES.default;
+}
+
+async function getNearbyStores() {
+  // Try real GPS + Google Places first
+  if (PLACES_URL && navigator.geolocation) {
+    try {
+      const pos = await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 })
+      );
+      const { latitude: lat, longitude: lng } = pos.coords;
+      userLocation._lat = lat;
+      userLocation._lng = lng;
+
+      const [asianRes, superRes] = await Promise.all([
+        fetch(`${PLACES_URL}?lat=${lat}&lng=${lng}&keyword=asian+grocery+supermarket&radius=8000`),
+        fetch(`${PLACES_URL}?lat=${lat}&lng=${lng}&keyword=supermarket+grocery&radius=5000`)
+      ]);
+      const [asianData, superData] = await Promise.all([asianRes.json(), superRes.json()]);
+
+      const seen = new Set();
+      const stores = [];
+
+      const processResult = (place) => {
+        if (seen.has(place.place_id)) return;
+        seen.add(place.place_id);
+        const n = place.name.toLowerCase();
+        const storeType = (n.includes('h mart') || n.includes('99 ranch') || n.includes('hmart') ||
+          n.includes('mitsuwa') || n.includes('uwajimaya') || n.includes('seafood city') ||
+          n.includes('hong kong') || n.includes('asian') || n.includes('oriental'))
+          ? 'asian'
+          : (n.includes('whole foods') || n.includes('sprouts') || n.includes('trader joe'))
+          ? 'organic' : 'regular';
+
+        const icons = {asian:'🏮', organic:'🌿', regular:'🛒'};
+        const distKm = place.geometry?.location
+          ? haversine(lat, lng, place.geometry.location.lat, place.geometry.location.lng)
+          : 99;
+        const distStr = distKm < 1 ? (distKm*1000).toFixed(0)+'m' : distKm.toFixed(1)+'km';
+
+        stores.push({
+          id: place.place_id,
+          name: place.name,
+          type: storeType,
+          icon: icons[storeType],
+          rating: place.rating || 0,
+          dist: distStr,
+          distNum: distKm,
+          address: place.vicinity || '',
+          open: place.opening_hours?.open_now,
+          specialties: getStoreSpecialties(place.name),
+          lat: place.geometry?.location?.lat,
+          lng: place.geometry?.location?.lng,
+        });
+      };
+
+      (asianData.results || []).forEach(p => processResult(p));
+      (superData.results || []).forEach(p => processResult(p));
+      stores.sort((a, b) => a.distNum - b.distNum);
+      if (stores.length > 0) return stores.slice(0, 12);
+    } catch(e) {
+      console.log('GPS/Places failed:', e.message);
+    }
+  }
+  // Fallback to mock
+  const city = userLocation.city?.toLowerCase() || '';
+  return MOCK_STORES[city] || MOCK_STORES.default;
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function getStoreSpecialties(name) {
+  const n = name.toLowerCase();
+  if (n.includes('h mart') || n.includes('hmart')) return ['韩式食材','泡菜','年糕','豆腐','冷冻饺子'];
+  if (n.includes('99 ranch') || n.includes('ranch 99')) return ['中式食材','新鲜豆腐','鱼丸','冬菇','蚝油'];
+  if (n.includes('uwajimaya')) return ['日韩食材','米酒','味噌','海苔','麻油'];
+  if (n.includes('whole foods')) return ['有机蔬菜','有机肉类','豆奶','天然酱料'];
+  if (n.includes('trader joe')) return ['冷冻饺子','椰奶','特色酱料'];
+  if (n.includes('walmart')) return ['各类食材','散装调料','大容量包装'];
+  return ['各类食材'];
+}
+
+function filterStores(type) {
+  activeStoreFilter = type;
+  document.querySelectorAll('.store-filter-btn').forEach((btn, i) => {
+    const types = ['all','asian','organic','regular'];
+    btn.classList.toggle('active', types[i] === type);
+  });
+  renderStoreList();
+}
+
+function renderStoreList() {
+  const list = document.getElementById('stores-list');
+  let filtered = storesData;
+  if (activeStoreFilter !== 'all') filtered = storesData.filter(s => s.type === activeStoreFilter);
+  
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state"><span class="big">🏪</span><p>没有找到该类型超市</p></div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((store, idx) => `
+    <div class="store-card" id="store-card-${store.id}" style="animation-delay:${idx*0.06}s" onclick="toggleStoreDetail('${store.id}')">
+      <div class="store-card-top">
+        <div class="store-icon ${store.type}" style="font-size:26px;display:flex;align-items:center;justify-content:center">
+          ${store.type === 'asian' ? '🏮' : store.type === 'organic' ? '🌿' : '🛒'}
+        </div>
+        <div style="flex:1">
+          <div class="store-name">${store.name}</div>
+          <div class="store-dist">📍 ${store.address} · ${store.dist}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+            <span style="font-size:12px;color:var(--yellow)">★</span>
+            <span style="font-size:12px;font-weight:500">${store.rating}</span>
+            <span style="font-size:11px;color:var(--muted)">${getStoreType(store.type)}</span>
+          </div>
+        </div>
+        <span style="font-size:18px;color:var(--muted);transition:transform .2s" id="store-arrow-${store.id}">›</span>
+      </div>
+      <div class="store-tags">
+        ${store.tags.map(t => `<span class="store-tag">${t}</span>`).join('')}
+        ${shoppingList.length ? getMatchingIngredients(store).slice(0,3).map(i => `<span class="store-tag best">✓ ${i}</span>`).join('') : ''}
+      </div>
+      <div class="store-ing-list" id="store-detail-${store.id}">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">擅长品类：</div>
+        ${store.specialties.map(s => {
+          const inList = shoppingList.some(i => i.zh === s || s.includes(i.zh));
+          return `<div class="store-ing-row">
+            <div class="ing-avail ${inList ? 'avail-easy' : 'avail-medium'}"></div>
+            <span style="flex:1">${s}</span>
+            ${inList ? '<span style="font-size:11px;color:var(--green);font-weight:500">✓ 购物清单</span>' : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function getMatchingIngredients(store) {
+  if (!shoppingList.length) return [];
+  return shoppingList.filter(i => store.specialties.some(s => s.includes(i.zh) || i.zh.includes(s))).map(i => i.zh);
+}
+
+function toggleStoreDetail(id) {
+  const detail = document.getElementById('store-detail-' + id);
+  const arrow = document.getElementById('store-arrow-' + id);
+  const isOpen = detail.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.store-ing-list').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('[id^="store-arrow-"]').forEach(el => { el.style.transform = ''; });
+  if (!isOpen) {
+    detail.classList.add('open');
+    if (arrow) arrow.style.transform = 'rotate(90deg)';
+  }
+}
+
+function renderIngStoreMap() {
+  const section = document.getElementById('ing-store-map');
+  const list = document.getElementById('ing-store-list');
+  if (!shoppingList.length || !storesData.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  // For each ingredient, find best store
+  const rows = shoppingList.map(ing => {
+    // Find stores that carry this ingredient
+    const matches = storesData.filter(s => s.specialties.some(sp => sp.includes(ing.zh) || ing.zh.includes(sp)));
+    const best = matches[0];
+    const storeTypeLabel = {asian:'亚裔超市', organic:'有机超市', regular:'普通超市'};
+    return `<div class="ing-store-row">
+      <div class="ing-avail ${best ? 'avail-easy' : 'avail-medium'}"></div>
+      <div class="ing-store-name">${ing.zh} <span style="font-size:11px;color:var(--muted);font-weight:300">${ing.en}</span></div>
+      ${best
+        ? `<div style="text-align:right"><div class="ing-store-rec">${best.icon} ${best.name}</div><div class="ing-store-where">${storeTypeLabel[best.type] || ''} · ${best.dist}</div></div>`
+        : `<div style="text-align:right"><div style="font-size:11px;color:var(--muted)">普通超市即可</div></div>`
+      }
+    </div>`;
+  }).join('');
+  list.innerHTML = rows;
+}
+
+async function renderStores() {
+  const noLoc = document.getElementById('stores-no-location');
+  const content = document.getElementById('stores-content');
+
+  noLoc.style.display = 'none';
+  content.style.display = 'block';
+  const locLabel = userLocation.city || (userLocation._lat ? '当前位置' : null);
+  document.getElementById('stores-location-label').textContent = '📍 ' + (locLabel || '当前位置') + ' 附近的超市';
+  document.getElementById('stores-subtitle').textContent = (locLabel || '当前位置') + ' 附近适合买中餐食材的超市';
+
+  storesData = await getNearbyStores();
+  renderStoreList();
+  renderIngStoreMap();
+}
+
+
+
+// ====== UNSPLASH IMAGES ======
+const UNSPLASH_KEY = '-oBY_O74ZKUGeUgnjCKHnLaCAfwp7W8dRXsJOrMiW-s';
+const imgCache = {};
+
+async function getUnsplashImg(query, size = 'small') {
+  const key = query + '_' + size;
+  if (imgCache[key]) return imgCache[key];
+  try {
+    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
+      headers: { Authorization: `Client-ID ${UNSPLASH_KEY}` }
+    });
+    const data = await res.json();
+    const url = data.results?.[0]?.urls?.[size] || data.results?.[0]?.urls?.small || null;
+    if (url) imgCache[key] = url;
+    return url;
+  } catch(e) { return null; }
+}
+
+// Preload images for a list of ingredients (zh + en terms)
+async function preloadIngImages(ingredients) {
+  await Promise.all(ingredients.map(ing => 
+    getUnsplashImg((ing.en || ing.zh) + ' food ingredient', 'thumb')
+  ));
+}
+
+// Store logo map (static — avoids copyright issues with scraped logos)
+const STORE_IMGS = {
+  hmart:      'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=120&h=80&fit=crop', // Asian grocery
+  '99ranch':  'https://images.unsplash.com/photo-1534483509719-3feaee7c30da?w=120&h=80&fit=crop', // Asian market
+  wholefoods: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=120&h=80&fit=crop', // Organic produce
+  walmart:    'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=120&h=80&fit=crop', // Supermarket
+  target:     'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=120&h=80&fit=crop', // Store interior
+  traderjoes: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=120&h=80&fit=crop', // Grocery
+};
+
+
+function openInMaps(name, lat, lng) {
+  if (lat && lng) {
+    window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+  } else {
+    window.open(`https://maps.google.com/?q=${encodeURIComponent(name)}`, '_blank');
+  }
+}
+
+// ====== EARLY GPS REQUEST ======
+function requestGPSEarly() {
+  if (!navigator.geolocation) return;
+  // Show a friendly prompt banner first time
+  const hasAsked = localStorage.getItem('gps-asked');
+  if (hasAsked) {
+    // Already asked before — silently try to get position
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLocation._lat = pos.coords.latitude;
+      userLocation._lng = pos.coords.longitude;
+    }, () => {}, { timeout: 8000, maximumAge: 300000 });
+    return;
+  }
+
+  // First time — show a gentle banner
+  const banner = document.createElement('div');
+  banner.id = 'gps-banner';
+  banner.style.cssText = 'position:fixed;top:54px;left:0;right:0;z-index:150;background:#fff;border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;gap:12px;animation:slideDown .3s ease;box-shadow:0 2px 12px rgba(0,0,0,.08)';
+  banner.innerHTML = `
+    <span style="font-size:22px">📍</span>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:500">允许位置访问</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:300">推荐你附近真实超市，更精准</div>
+    </div>
+    <button onclick="allowGPS()" style="padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:20px;font-size:12px;cursor:pointer;font-weight:500;white-space:nowrap">允许</button>
+    <button onclick="dismissGPS()" style="padding:7px 10px;background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1">×</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+function allowGPS() {
+  localStorage.setItem('gps-asked', '1');
+  document.getElementById('gps-banner')?.remove();
+  navigator.geolocation.getCurrentPosition(pos => {
+    userLocation._lat = pos.coords.latitude;
+    userLocation._lng = pos.coords.longitude;
+    showToast('✓ 位置已获取，附近超市已就绪');
+  }, err => {
+    showToast('位置获取失败，请检查权限设置');
+  }, { timeout: 10000 });
+}
+
+function dismissGPS() {
+  localStorage.setItem('gps-asked', 'dismissed');
+  document.getElementById('gps-banner')?.remove();
+}
+
+// ====== INGREDIENT CATEGORY SYSTEM ======
+function getIngCategory(zh, en) {
+  const z = zh || '', e = (en || '').toLowerCase();
+  if (/肉|排|鸡|猪|牛|羊|鱼|虾|蟹|海鲜|培根|火腿/.test(z) || /meat|beef|pork|chicken|fish|shrimp|seafood/.test(e))
+    return { cat: 'meat', label: '肉类/海鲜', icon: '🥩', color: '#fdecea', border: '#f5a9a3' };
+  if (/菜|菠菜|白菜|葱|姜|蒜|洋葱|土豆|番茄|西红柿|黄瓜|豆腐|茄子|胡萝卜|韭|芹|莲|蘑菇|香菇|木耳/.test(z) || /vegetable|tofu|mushroom|onion|garlic|ginger|tomato|spinach|carrot/.test(e))
+    return { cat: 'produce', label: '蔬菜/豆腐', icon: '🥬', color: '#d8f3dc', border: '#74c69d' };
+  if (/米|面|粉|淀粉|糯米|年糕|面条|饺子皮|春卷皮/.test(z) || /rice|flour|noodle|starch|dumpling/.test(e))
+    return { cat: 'grain', label: '米面/主食', icon: '🍚', color: '#fff8e7', border: '#ffd166' };
+  if (/酱|油|醋|盐|糖|料酒|生抽|老抽|蚝油|豆豉|辣椒|花椒|八角|桂皮|香叶|五香|胡椒|芝麻|酱油/.test(z) || /sauce|soy|oil|vinegar|salt|sugar|spice|pepper|sesame|oyster/.test(e))
+    return { cat: 'condiment', label: '调料/酱料', icon: '🫙', color: '#f0e6ff', border: '#c77dff' };
+  if (/鸡蛋|蛋|奶|黄油|芝士|奶酪/.test(z) || /egg|milk|butter|cheese|cream/.test(e))
+    return { cat: 'dairy', label: '蛋奶', icon: '🥚', color: '#fff0e0', border: '#ffb347' };
+  return { cat: 'other', label: '其他', icon: '🛒', color: 'var(--surface2)', border: 'var(--border)' };
+}
+
+// Which store types are best for each category
+const CAT_STORE_PREF = {
+  meat:      ['asian', 'regular', 'organic'],
+  produce:   ['asian', 'organic', 'regular'],
+  grain:     ['asian', 'regular', 'organic'],
+  condiment: ['asian', 'regular', 'organic'],
+  dairy:     ['organic', 'regular', 'asian'],
+  other:     ['regular', 'asian', 'organic'],
+};
+
+function getStoresForIng(ing) {
+  if (!storesData?.length) return [];
+  const { cat } = getIngCategory(ing.zh, ing.en);
+  const pref = CAT_STORE_PREF[cat] || ['regular','asian','organic'];
+  return [...storesData]
+    .sort((a, b) => {
+      const ai = pref.indexOf(a.type), bi = pref.indexOf(b.type);
+      const aScore = (ai === -1 ? 99 : ai) + a.distNum;
+      const bScore = (bi === -1 ? 99 : bi) + b.distNum;
+      return aScore - bScore;
+    })
+    .slice(0, 3);
+}
+// ====== INGREDIENT DETAIL ======
+async function openIngDetail(idx) {
+  const ing = shoppingList[idx];
+  if (!ing) return;
+  const dish = shoppingList._dish || '';
+
+  // Open modal immediately with loading state
+  document.getElementById('ing-detail-modal').classList.add('open');
+  document.getElementById('ing-modal-name').textContent = ing.zh;
+  document.getElementById('ing-modal-en').textContent = ing.en;
+  document.getElementById('ing-modal-body').innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)"><span style="font-size:24px">⏳</span><br><span style="font-size:13px;margin-top:8px;display:block">正在加载…</span></div>';
+
+  // Load ingredient image via Unsplash API
+  const imgEl = document.getElementById('ing-modal-img');
+  const wrapEl = document.getElementById('ing-modal-img-wrap');
+  wrapEl.style.display = 'block';
+  imgEl.src = '';
+  getUnsplashImg((ing.en || ing.zh) + ' food ingredient', 'regular').then(url => {
+    if (url) { imgEl.src = url; }
+    else { wrapEl.style.display = 'none'; }
+  });
+
+  // Get community reviews mentioning this ingredient
+  const allReviews = await getReviews();
+  const relatedReviews = allReviews
+    .filter(r => r.zh === ing.zh || (r.en && r.en.toLowerCase() === ing.en.toLowerCase()))
+    .sort((a,b) => (b.votes?.up||0) - (a.votes?.up||0))
+    .slice(0, 3);
+
+  // Call Claude for ingredient info
+  try {
+    const storeCtx = userLocation.storeType && userLocation.storeType !== 'any'
+      ? {regular:'普通超市(Walmart/Target)', asian:'亚裔超市(H Mart/99Ranch)', whole:'Whole Foods'}[userLocation.storeType] || ''
+      : '';
+
+    const t = await callClaude([{
+      role: 'user',
+      content: `食材：${ing.zh}（${ing.en}），用于菜肴：${dish || '未知'}。请介绍这个食材。`
+    }],
+    `你是帮助留学生了解食材的助手。用户在美国超市购物。${storeCtx ? '用户常去：'+storeCtx : ''}
+返回JSON：
+{
+  "intro": "食材简介（2句话，说明它是什么、口感/气味特点）",
+  "role_in_dish": "在${dish || '这道菜'}中的作用（1-2句）",
+  "buy_tip": "在超市怎么挑选这个食材（1句）",
+  "brands": [
+    {"name":"品牌名或推荐款", "desc":"一句话说明为什么推荐", "icon":"相关emoji"}
+  ]
+}
+brands给2-3个，针对${storeCtx || '美国超市'}常见品牌。只返回JSON。`, 800);
+
+    const data = parseJSON(t);
+
+    // Build community brand recommendations
+    const communityBrands = relatedReviews.map(r => ({
+      name: r.zh,
+      store: r.store,
+      desc: r.text,
+      stars: r.stars,
+      sentiment: r.sentiment,
+      fromCommunity: true,
+      icon: r.sentiment === 'good' ? '⭐' : '💬'
+    }));
+
+    // Render
+    document.getElementById('ing-modal-body').innerHTML = `
+      <div class="ing-modal-section">
+        <div class="ing-modal-section-title">关于这个食材</div>
+        <div class="ing-modal-text">${data.intro}</div>
+      </div>
+
+      ${dish ? `<div class="ing-modal-section">
+        <div class="ing-modal-section-title">在${dish}中的作用</div>
+        <div class="ing-modal-text">${data.role_in_dish}</div>
+        <div style="margin-top:8px"><span class="ing-modal-dish-tag">🍳 ${dish}</span></div>
+      </div>` : ''}
+
+      <div class="ing-modal-section">
+        <div class="ing-modal-section-title">怎么挑选</div>
+        <div class="ing-modal-text">🛒 ${data.buy_tip}</div>
+      </div>
+
+      <div class="ing-modal-section">
+        <div class="ing-modal-section-title">推荐品牌</div>
+        <div class="brand-list">
+          ${communityBrands.length ? communityBrands.map(b => `
+            <div class="brand-card">
+              <div class="brand-icon">${b.icon}</div>
+              <div class="brand-info">
+                <div class="brand-name">${b.store} · ${b.stars}★</div>
+                <div class="brand-desc">${b.desc.slice(0, 60)}${b.desc.length>60?'…':''}</div>
+              </div>
+              <span class="brand-source brand-community">社区推荐</span>
+            </div>
+          `).join('') : ''}
+          ${(data.brands || []).map(b => `
+            <div class="brand-card">
+              <div class="brand-icon">${b.icon || '🏷️'}</div>
+              <div class="brand-info">
+                <div class="brand-name">${b.name}</div>
+                <div class="brand-desc">${b.desc}</div>
+              </div>
+              <span class="brand-source brand-ai">AI推荐</span>
+            </div>
+          `).join('')}
+        </div>
+        ${communityBrands.length === 0 ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;font-weight:300">社区还没有关于这个食材的评价，<span style="color:var(--green);cursor:pointer" onclick="closeIngModal();switchTab('community')">去分享你的发现</span></div>` : ''}
+      </div>
+
+      ${buildNearbyStoresSection(ing)}
+    `;
+  } catch(e) {
+    document.getElementById('ing-modal-body').innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;font-size:13px">加载失败，请重试</p>';
+  }
+}
+
+
+function buildNearbyStoresSection(ing) {
+  const nearby = getStoresForIng(ing);
+  if (!nearby.length) return '';
+  const { icon, label, color, border } = getIngCategory(ing.zh, ing.en);
+  return `
+    <div class="ing-modal-section">
+      <div class="ing-modal-section-title">📍 附近哪里能买到</div>
+      <div style="display:inline-flex;align-items:center;gap:5px;background:${color};border:1px solid ${border};border-radius:20px;padding:3px 10px;margin-bottom:10px">
+        <span style="font-size:13px">${icon}</span>
+        <span style="font-size:11px;font-weight:500">${label}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${nearby.map((s, i) => `
+          <div onclick="openInMaps('${s.name}',${s.lat||0},${s.lng||0})" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:11px;cursor:pointer;border:1px solid var(--border);transition:all .15s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:22px;flex-shrink:0">${s.icon || '🏪'}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:1px">${s.open === true ? '🟢 营业中' : s.open === false ? '🔴 已关闭' : ''} ${s.dist ? '· ' + s.dist : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              ${s.rating ? `<div style="font-size:12px;font-weight:600;color:var(--ink)">★ ${s.rating}</div>` : ''}
+              <div style="font-size:11px;color:var(--green);margin-top:2px">→ 地图</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ${!userLocation._lat ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">开启位置权限可显示真实距离</div>` : ''}
+    </div>
+  `;
+}
+function closeIngModal(e) {
+  if (!e || e.target === document.getElementById('ing-detail-modal')) {
+    document.getElementById('ing-detail-modal').classList.remove('open');
+  }
+}
+
+// ====== EXPIRY TRACKING ======
+
+function getDaysUntilExpiry(dateStr) {
+  const expiry = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  expiry.setHours(0,0,0,0);
+  return Math.round((expiry - today) / 86400000);
+}
+
+function checkExpiryNotifications() {
+  const container = document.getElementById('expiry-notifications');
+  if (!container) return;
+
+  const urgent = []; // <= 2 days
+  const soon = [];   // 3-7 days
+
+  Object.values(inventory).forEach(item => {
+    if (!item.expiry) return;
+    const days = getDaysUntilExpiry(item.expiry);
+    if (days <= 0) urgent.push({...item, days});
+    else if (days <= 2) urgent.push({...item, days});
+    else if (days <= 7) soon.push({...item, days});
+  });
+
+  if (!urgent.length && !soon.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  if (urgent.length) {
+    const names = urgent.map(i => `<strong>${i.zh}</strong>${i.days <= 0 ? '（已过期）' : `（${i.days}天）`}`).join('、');
+    html += `<div class="notif-banner notif-urgent" onclick="switchTab('inventory')">
+      <div class="notif-icon">🔴</div>
+      <div class="notif-text"><div class="notif-title">即将到期！</div>${names} 请尽快使用或扔掉</div>
+      <div class="notif-dismiss" onclick="event.stopPropagation();this.parentElement.remove()">×</div>
+    </div>`;
+  }
+  if (soon.length) {
+    const names = soon.map(i => `<strong>${i.zh}</strong>（${i.days}天）`).join('、');
+    html += `<div class="notif-banner notif-soon" onclick="switchTab('inventory')">
+      <div class="notif-icon">🟡</div>
+      <div class="notif-text"><div class="notif-title">本周到期提醒</div>${names}</div>
+      <div class="notif-dismiss" onclick="event.stopPropagation();this.parentElement.remove()">×</div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function setExpiryDate(zh) {
+  const item = inventory[zh];
+  if (!item) return;
+  // Use the expiry modal
+  document.getElementById('expiry-modal-title').textContent = zh + ' · 保质期';
+  document.getElementById('expiry-modal-date').value = item.expiry || '';
+  document.getElementById('expiry-modal-item').value = zh;
+  document.getElementById('expiry-modal').classList.add('open');
+}
+
+function saveExpiryModal() {
+  const zh = document.getElementById('expiry-modal-item').value;
+  const date = document.getElementById('expiry-modal-date').value;
+  if (!zh) return;
+  if (date) {
+    inventory[zh].expiry = date;
+  } else {
+    delete inventory[zh].expiry;
+  }
+  saveInventory();
+  renderInventory();
+  checkExpiryNotifications();
+  closeModal('expiry-modal');
+  showToast('✓ 保质期已保存');
+}
+
+// Also check when switching to recipe page — warn if items in list are expiring
+function checkExpiryOnShop(ingredients) {
+  if (!ingredients?.length) return;
+  const warnings = ingredients
+    .filter(ing => inventory[ing.zh]?.expiry && getDaysUntilExpiry(inventory[ing.zh].expiry) <= 7)
+    .map(ing => {
+      const days = getDaysUntilExpiry(inventory[ing.zh].expiry);
+      return `${ing.zh}（${days <= 0 ? '已过期' : days + '天后到期'}）`;
+    });
+  if (warnings.length) {
+    showToast(`⚠️ 库存中 ${warnings.join('、')} 快到期了，先用掉！`, 4000);
+  }
+}
+
+// Expiry scan via photo
+async function handleExpiryScan(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = async ev => {
+    const stop = startProg('expiry-fill', 'expiry-prog');
+    document.getElementById('expiry-prog').style.display = 'block';
+    const resultDiv = document.getElementById('expiry-result');
+    resultDiv.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">AI识别中…</div>';
+    try {
+      const b64 = ev.target.result.split(',')[1];
+      const t = await callClaude([{role:'user', content:[
+        {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}},
+        {type:'text', text:'请识别图片中的保质期日期'}
+      ]}],
+      '你是帮助用户识别食品包装上保质期的助手。请找出图片中的保质期/最佳食用期/exp date等日期信息，返回JSON：{"found":true,"dates":[{"label":"保质期至/Best Before/Exp","date":"YYYY-MM-DD格式","raw":"原始文字"}]}。如果找不到日期，返回{"found":false}。只返回JSON。', 400);
+      const data = parseJSON(t); stop();
+
+      if (!data.found || !data.dates?.length) {
+        resultDiv.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">未识别到保质期，请手动输入</div>';
+        return;
+      }
+
+      // Show results and let user pick which inventory item to assign to
+      const items = Object.keys(inventory);
+      resultDiv.innerHTML = `
+        <div style="background:var(--green-light);border:1px solid var(--green-mid);border-radius:10px;padding:12px;margin-top:8px">
+          <div style="font-size:12px;font-weight:500;color:var(--green);margin-bottom:8px">📅 识别到保质期：</div>
+          ${data.dates.map(d => `<div style="font-size:13px;font-weight:500">${d.label}：${d.date} <span style="font-size:11px;color:var(--muted)">(${d.raw})</span></div>`).join('')}
+          <div style="margin-top:10px">
+            <label style="font-size:11px;color:var(--ink2)">应用到哪个食材？</label>
+            <select id="expiry-assign-item" style="margin-top:4px;font-size:13px">
+              <option value="">-- 选择食材 --</option>
+              ${items.map(zh => `<option value="${zh}">${zh}</option>`).join('')}
+            </select>
+            <button onclick="assignExpiry('${data.dates[0].date}')" class="btn btn-primary" style="margin-top:8px;font-size:12px">✓ 保存保质期</button>
+          </div>
+        </div>`;
+    } catch(err) {
+      stop();
+      resultDiv.innerHTML = `<div style="font-size:12px;color:var(--red);padding:8px 0">识别失败：${err.message}</div>`;
+    }
+    e.target.value = '';
+  };
+  r.readAsDataURL(file);
+}
+
+function assignExpiry(dateStr) {
+  const zh = document.getElementById('expiry-assign-item')?.value;
+  if (!zh) return alert('请选择食材');
+  inventory[zh].expiry = dateStr;
+  saveInventory();
+  renderInventory();
+  checkExpiryNotifications();
+  document.getElementById('expiry-result').innerHTML = `<div style="font-size:12px;color:var(--green);padding:8px 0">✓ 已为 ${zh} 设置保质期 ${dateStr}</div>`;
+  showToast('✓ 保质期已保存');
+}
+
+// Browser notification permission + scheduling
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+async function sendExpiryNotifications() {
+  const hasPermission = await requestNotificationPermission();
+  const urgent = Object.values(inventory).filter(i => i.expiry && getDaysUntilExpiry(i.expiry) <= 2 && getDaysUntilExpiry(i.expiry) >= 0);
+  if (!urgent.length) return;
+  if (hasPermission) {
+    urgent.forEach(item => {
+      const days = getDaysUntilExpiry(item.expiry);
+      new Notification('买什么 · 保质期提醒', {
+        body: `${item.zh} 还有 ${days <= 0 ? '0天（今天到期）' : days + '天'} 到期，快用掉！`,
+        icon: '🥬'
+      });
+    });
+  }
+  // Always show in-app banner regardless
+  checkExpiryNotifications();
+}
+// ====== INIT ======
+(async () => {
+  try {
+    document.getElementById('page-recipe')?.classList.add('active');
+    document.getElementById('tab-recipe')?.classList.add('active');
+    await loadInventory();
+    await loadLocation();
+    await loadCurrentStore();
+    await loadChecklist();
+    renderInventory();
+    renderFeed();
+    checkExpiryNotifications();
+    sendExpiryNotifications().catch(()=>{});
+    // Request GPS early so it's ready when needed
+    requestGPSEarly();
+    if (PROXY_URL) {
+      const warmUp = () => fetch(PROXY_URL.replace('/api/claude', '/')).catch(() => {});
+      warmUp();
+      setInterval(warmUp, 4 * 60 * 1000);
+    }
+  } catch(e) {
+    console.error('Init error:', e);
+  }
+})();
+</script>
+
+<!-- INGREDIENT DETAIL MODAL -->
+<div class="modal-overlay" id="ing-detail-modal" onclick="closeIngModal(event)">
+  <div class="ing-modal" id="ing-modal-inner">
+    <!-- Image hero -->
+    <div class="ing-modal-img-wrap" id="ing-modal-img-wrap">
+      <img id="ing-modal-img" alt="" onerror="this.parentElement.style.display='none'">
+      <div class="ing-modal-img-overlay">
+        <div class="ing-modal-name" id="ing-modal-name"></div>
+        <div class="ing-modal-en" id="ing-modal-en"></div>
+      </div>
+    </div>
+    <!-- Close btn -->
+    <button class="ing-modal-close" onclick="document.getElementById('ing-detail-modal').classList.remove('open')">✕</button>
+    <!-- Content -->
+    <div class="ing-modal-body" id="ing-modal-body">
+      <div style="text-align:center;padding:20px;color:var(--muted)">
+        <span style="font-size:24px">⏳</span><br>
+        <span style="font-size:13px">加载中…</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Service worker - completely optional, never blocks main app
+try {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => reg.update())
+        .catch(() => {}); // silent fail
+    });
+  }
+} catch(e) {}
+</script>
+
+
+<!-- EXPIRY DATE MODAL -->
+<div class="modal-overlay" id="expiry-modal">
+  <div class="modal">
+    <h3 id="expiry-modal-title">设置保质期</h3>
+    <input type="hidden" id="expiry-modal-item">
+    <div class="field" style="margin-top:14px">
+      <label>保质期至</label>
+      <input type="date" id="expiry-modal-date" style="font-family:inherit;font-size:16px;padding:10px 12px">
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">留空表示不设置保质期</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('expiry-modal')" style="flex:1">取消</button>
+      <button class="btn btn-primary" onclick="saveExpiryModal()" style="flex:1">✓ 保存</button>
+    </div>
+  </div>
+</div>
+<!-- RECIPE VARIANT PICKER MODAL -->
+<div class="modal-overlay" id="variant-modal">
+  <div class="modal">
+    <h3 id="variant-title">选择做法</h3>
+    <p style="font-size:12px;color:var(--muted);margin:6px 0 14px;font-weight:300">同一道菜各地做法不同，食材也不一样</p>
+    <div id="variant-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="btn btn-outline" onclick="closeModal('variant-modal')" style="margin-top:12px;font-size:12px">直接用我输入的原文</button>
+  </div>
+</div>
+</body>
+</html>
