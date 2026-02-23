@@ -2416,7 +2416,7 @@ chicken feet → pork feet → duck feet
 1. zh字段：中文名，开头大写（如"牛腩"、"五花肉"、"鸡腿肉"）
 2. en字段：美国超市能买到的准确英文名（如"pork belly"、"beef brisket"）
 
-返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文（开头大写）","en":"美国超市英文名","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景","same_category":"是否是同部位替代（true/false）"}],"tip":"总体建议"}
+返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文（开头大写）","en":"美国超市英文名","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"详细的风味描述，包括口感（比如Q弹/软嫩/嚼劲）、味道（比如酱香/微甜/麻辣）、与原食材的对比（比如更瘦/更肥/更嫩/更柴）","ratio":"用量比例（1:1或具体比例）","best_for":"最适合做什么菜（比如炒菜/炖汤/红烧/煎烤）","cook_tip":"烹饪建议（比如需要提前腌制/需要去腥/需要切薄片）","same_category":"是否是同部位替代（true/false）"}],"tip":"总体建议"}
 只返回JSON。`);
     const r = parseJSON(t); stop();
     const ac = {'容易找到':'var(--green)', '较容易':'var(--yellow)', '可能需要找找':'var(--muted)'};
@@ -2446,8 +2446,9 @@ chicken feet → pork feet → duck feet
         </div>
         <div class="sub-avail" style="display:flex;align-items:center;gap:3px;color:${ac[s.availability]||'var(--muted)'}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> ${s.availability}</div></div>
         <div class="sub-where" style="display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> ${s.where}</div>
-        <div class="sub-flavor">${s.flavor_change}</div>
-        <div class="sub-ratio">用量：${s.ratio} · 适合：${s.best_for}</div>
+        <div class="sub-flavor">${s.flavor_change || '无描述'}</div>
+        <div class="sub-ratio">用量：${s.ratio || '1:1'} · 适合：${s.best_for || '一般菜'}</div>
+        ${s.cook_tip ? `<div style="font-size:10px;color:var(--blue);margin-top:4px">🍳 烹饪：${s.cook_tip}</div>` : ''}
       </div>`;
     });
     
