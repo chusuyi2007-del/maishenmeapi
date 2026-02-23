@@ -880,6 +880,16 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
         <div id="receipt-result"></div>
       </div>
 
+      <!-- Voice batch add -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 语音批量入库 <button class="btn-sm btn-outline" id="voice-batch-btn" onclick="toggleVoiceBatchAdd()" style="margin-left:auto;margin-top:0;display:flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 按住说话</button></div>
+        <div style="position:relative">
+          <textarea id="voice-batch-input" rows="3" placeholder="可以说：五花肉500g，保质期7天，鸡蛋6个" style="width:100%;resize:none;padding-right:40px"></textarea>
+        </div>
+        <div id="voice-batch-result" style="margin-top:10px"></div>
+        <button class="btn btn-primary" id="parse-batch-btn" onclick="parseAndAddBatchInventory()" style="margin-top:10px;display:flex;align-items:center;gap:5px;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 批量添加</button>
+      </div>
+
       <!-- Manual add -->
       <div class="card">
         <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 手动添加库存</div>
@@ -2336,6 +2346,296 @@ async function toggleVoiceInput() {
     console.error('Voice start error:', e);
     showToast('启动语音识别失败，请重试');
   }
+}
+
+// ====== VOICE BATCH ADD ======
+let voiceBatchRecognition = null;
+let isBatchRecording = false;
+
+async function toggleVoiceBatchAdd() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showAlert('不支持', '您的浏览器不支持语音识别，请使用 Chrome 或 Safari', 'error');
+    return;
+  }
+  
+  const btn = document.getElementById('voice-batch-btn');
+  const textarea = document.getElementById('voice-batch-input');
+  
+  if (isBatchRecording) {
+    if (voiceBatchRecognition) {
+      voiceBatchRecognition.stop();
+    }
+    isBatchRecording = false;
+    btn.classList.remove('recording');
+    return;
+  }
+  
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    showAlert('权限不足', '请允许麦克风权限以使用语音输入', 'warning');
+    return;
+  }
+  
+  let finalText = '';
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceBatchRecognition = new SpeechRecognition();
+  voiceBatchRecognition.lang = 'zh-CN';
+  voiceBatchRecognition.continuous = true;
+  voiceBatchRecognition.interimResults = true;
+  
+  voiceBatchRecognition.onstart = () => {
+    isBatchRecording = true;
+    btn.classList.add('recording');
+    textarea.placeholder = '正在录音...请说出要添加的食材和保质期';
+  };
+  
+  voiceBatchRecognition.onresult = (event) => {
+    let interimText = '';
+    
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalText = finalText ? finalText + '，' + transcript : transcript;
+      } else {
+        interimText += transcript;
+      }
+    }
+    textarea.value = finalText + (interimText ? '，' + interimText : '');
+  };
+  
+  voiceBatchRecognition.onerror = (event) => {
+    console.error('Voice batch error:', event.error);
+    isBatchRecording = false;
+    btn.classList.remove('recording');
+    textarea.placeholder = '可以说：五花肉500g，保质期7天，鸡蛋6个';
+    if (event.error === 'not-allowed') {
+      showToast('麦克风权限被拒绝');
+    } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+      showToast('语音识别失败：' + event.error);
+    }
+  };
+  
+  voiceBatchRecognition.onend = () => {
+    isBatchRecording = false;
+    btn.classList.remove('recording');
+    textarea.placeholder = '可以说：五花肉500g，保质期7天，鸡蛋6个';
+  };
+  
+  try {
+    voiceBatchRecognition.start();
+  } catch(e) {
+    console.error('Voice batch start error:', e);
+    showToast('启动语音识别失败，请重试');
+  }
+}
+
+async function parseAndAddBatchInventory() {
+  const text = document.getElementById('voice-batch-input').value.trim();
+  if (!text) {
+    showAlert('提示', '请先说出要添加的食材，或直接输入', 'warning');
+    return;
+  }
+  
+  const btn = document.getElementById('parse-batch-btn');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = ldots() + ' 解析中';
+  btn.disabled = true;
+  
+  try {
+    const system = `你是一个食材库存解析助手。用户会输入一段语音或文字，描述要添加的食材、数量和保质期。请解析出每个食材的名称、数量和保质期。
+    
+请严格按照以下JSON格式返回：
+{"items": [{"zh": "食材中文名", "qty": 数量(数字), "unit": "单位", "expiry_days": 保质期天数(数字，可选)}]}
+    
+注意事项：
+1. 数量必须是数字，不要包含单位
+2. 单位可以是：g、斤、kg、个、瓶、盒、袋、棵、头、只、杯、升、ml、包、扎等
+3. 如果没有明确数量，默认设为1
+4. 保质期用天数表示（如7天就写7），可以说"保质期7天"、"三天后过期"、"一周"等
+5. 如果没有提到保质期，不要包含expiry_days字段
+6. 只返回JSON，不要其他文字
+7. 如果无法解析任何食材，返回空数组：{"items": []}`;
+    
+    const result = await callAI([{ role: 'user', content: text }], system, 600);
+    
+    let parsed;
+    try {
+      parsed = parseJSON(result);
+    } catch(e) {
+      const match = result.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        throw new Error('无法解析结果');
+      }
+    }
+    
+    const items = parsed.items || [];
+    if (items.length === 0) {
+      showAlert('未识别到食材', '请尝试更清楚地描述，例如：五花肉500克，鸡蛋6个，保质期7天', 'warning');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      return;
+    }
+    
+    let addedCount = 0;
+    const resultDiv = document.getElementById('voice-batch-result');
+    let resultHtml = '<div style="font-size:12px;margin-bottom:8px">识别到以下食材：</div>';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const parsedItems = [];
+    let hasInvalidExpiry = false;
+    
+    for (const item of items) {
+      const zh = item.zh;
+      const qty = parseFloat(item.qty) || 1;
+      const unit = item.unit || '份';
+      let expiryDays = parseInt(item.expiry_days) || null;
+      
+      if (!zh) continue;
+      
+      let expiry = null;
+      let expiryStatus = 'ok';
+      
+      if (expiryDays !== null) {
+        if (expiryDays < 0) {
+          expiryStatus = 'expired';
+        } else if (expiryDays > 1095) {
+          expiryStatus = 'toolong';
+        } else {
+          const expiryDate = new Date(today);
+          expiryDate.setDate(expiryDate.getDate() + expiryDays);
+          expiry = expiryDate.toISOString().split('T')[0];
+        }
+      }
+      
+      parsedItems.push({ zh, qty, unit, expiry, expiryStatus, expiryDays: expiryDays || '' });
+      
+      if (expiryStatus !== 'ok') {
+        hasInvalidExpiry = true;
+      }
+    }
+    
+    resultHtml = '<div style="font-size:12px;margin-bottom:8px">请确认以下食材：</div>';
+    
+    for (let i = 0; i < parsedItems.length; i++) {
+      const item = parsedItems[i];
+      let expiryHtml = '';
+      let inputHtml = '';
+      
+      if (item.expiryStatus === 'expired') {
+        expiryHtml = '<span style="font-size:10px;color:var(--red);margin-left:6px">已过期</span>';
+        inputHtml = `<input type="text" id="expiry-input-${i}" placeholder="输入天数，如7" style="margin-top:4px;font-size:11px;padding:4px 8px">`;
+        hasInvalidExpiry = true;
+      } else if (item.expiryStatus === 'toolong') {
+        expiryHtml = '<span style="font-size:10px;color:var(--yellow);margin-left:6px">保质期过长</span>';
+        inputHtml = `<input type="text" id="expiry-input-${i}" placeholder="输入天数，如7" style="margin-top:4px;font-size:11px;padding:4px 8px">`;
+        hasInvalidExpiry = true;
+      } else if (item.expiry) {
+        expiryHtml = `<span style="font-size:10px;color:var(--green);margin-left:6px">${item.expiry}</span>`;
+      }
+      
+      resultHtml += `<div class="receipt-item" style="flex-direction:column;align-items:flex-start">
+        <div style="display:flex;align-items:center;width:100%">
+          <span class="receipt-item-name">${item.zh}</span>
+          <span class="receipt-item-qty">${item.qty} ${item.unit}${expiryHtml}</span>
+        </div>
+        ${inputHtml}
+      </div>`;
+    }
+    
+    if (hasInvalidExpiry) {
+      resultHtml += '<div style="font-size:11px;color:var(--red);margin-top:8px">请修正上图中标记的保质期后确认添加</div>';
+      resultHtml += `<button class="btn btn-primary" onclick="confirmBatchInventory(${JSON.stringify(parsedItems).replace(/"/g, '&quot;')})" style="margin-top:10px">确认添加</button>`;
+      resultDiv.innerHTML = resultHtml;
+    } else {
+      for (const item of parsedItems) {
+        if (inventory[item.zh]) {
+          inventory[item.zh].qty += item.qty;
+          inventory[item.zh].maxQty = Math.max(inventory[item.zh].maxQty, inventory[item.zh].qty);
+          if (item.expiry) inventory[item.zh].expiry = item.expiry;
+        } else {
+          inventory[item.zh] = { zh: item.zh, en: '', qty: item.qty, unit: item.unit, maxQty: item.qty, expiry: item.expiry };
+        }
+        addedCount++;
+      }
+      
+      await saveInventory();
+      renderInventory();
+      checkExpiryNotifications();
+      
+      resultHtml += `<div style="font-size:12px;color:var(--green);margin-top:8px">✓ 成功添加 ${addedCount} 种食材到库存</div>`;
+      resultDiv.innerHTML = resultHtml;
+      
+      document.getElementById('voice-batch-input').value = '';
+      showToast('已添加 ' + addedCount + ' 种食材到库存');
+    }
+    
+  } catch(e) {
+    console.error('Batch parse error:', e);
+    showAlert('解析失败', e.message || '请重试或手动输入', 'error');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function confirmBatchInventory(parsedItems) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let hasError = false;
+  
+  for (let i = 0; i < parsedItems.length; i++) {
+    const inputEl = document.getElementById(`expiry-input-${i}`);
+    if (inputEl) {
+      const newDays = parseInt(inputEl.value);
+      if (isNaN(newDays) || newDays <= 0) {
+        showAlert('输入无效', `请输入有效的天数（正整数）`, 'warning');
+        hasError = true;
+        continue;
+      }
+      if (newDays > 1095) {
+        showAlert('输入无效', `保质期不能超过3年（1095天）`, 'warning');
+        hasError = true;
+        continue;
+      }
+      const expiryDate = new Date(today);
+      expiryDate.setDate(expiryDate.getDate() + newDays);
+      parsedItems[i].expiry = expiryDate.toISOString().split('T')[0];
+      parsedItems[i].expiryStatus = 'ok';
+    }
+  }
+  
+  if (hasError) return;
+  
+  let addedCount = 0;
+  const resultDiv = document.getElementById('voice-batch-result');
+  let resultHtml = '';
+  
+  for (const item of parsedItems) {
+    if (inventory[item.zh]) {
+      inventory[item.zh].qty += item.qty;
+      inventory[item.zh].maxQty = Math.max(inventory[item.zh].maxQty, inventory[item.zh].qty);
+      if (item.expiry) inventory[item.zh].expiry = item.expiry;
+    } else {
+      inventory[item.zh] = { zh: item.zh, en: '', qty: item.qty, unit: item.unit, maxQty: item.qty, expiry: item.expiry };
+    }
+    addedCount++;
+  }
+  
+  await saveInventory();
+  renderInventory();
+  checkExpiryNotifications();
+  
+  resultHtml += `<div style="font-size:12px;color:var(--green);margin-top:8px">✓ 成功添加 ${addedCount} 种食材到库存</div>`;
+  resultDiv.innerHTML = resultHtml;
+  
+  document.getElementById('voice-batch-input').value = '';
+  showToast('已添加 ' + addedCount + ' 种食材到库存');
 }
 
 // ====== INGREDIENT TRANSLATION ======
