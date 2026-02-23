@@ -2434,101 +2434,68 @@ chicken feet → pork feet → duck feet
       return '📦';
     };
     
-    const subImgCache = {};
     const MEAT_IMAGE_MAP = {
-      'beef brisket': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Beef_brisket.jpg/320px-Beef_brisket.jpg',
-      'beef flank': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Beef_flank.jpg/320px-Beef_flank.jpg',
-      'beef chuck': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Beef_chuck.jpg/320px-Beef_chuck.jpg',
-      'beef short ribs': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Beef_short_ribs.jpg/320px-Beef_short_ribs.jpg',
-      'beef skirt': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Beef_skirt.jpg/320px-Beef_skirt.jpg',
-      'beef sirloin': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Beef_sirloin_steak.jpg/320px-Beef_sirloin_steak.jpg',
-      'beef ribeye': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Ribeye_steak.jpg/320px-Ribeye_steak.jpg',
-      'beef tenderloin': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Beef_tenderloin.jpg/320px-Beef_tenderloin.jpg',
-      'beef oxtail': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Oxtail.jpg/320px-Oxtail.jpg',
-      'beef round': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Beef_round.jpg/320px-Beef_round.jpg',
-      'beef shank': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Beef_shank.jpg/320px-Beef_shank.jpg',
-      'beef tripe': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Beef_tripe.jpg/320px-Beef_tripe.jpg',
-      'beef tongue': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Beef_tongue.jpg/320px-Beef_tongue.jpg',
-      'pork belly': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Pork_belly.jpg/320px-Pork_belly.jpg',
-      'pork shoulder': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Pork_shoulder.jpg/320px-Pork_shoulder.jpg',
-      'pork loin': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Pork_loin_chop.jpg/320px-Pork_loin_chop.jpg',
-      'pork ribs': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Pork_ribs.jpg/320px-Pork_ribs.jpg',
-      'pork hock': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Pork_hock.jpg/320px-Pork_hock.jpg',
-      'pork feet': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Pork_feet.jpg/320px-Pork_feet.jpg',
-      'pork tenderloin': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Pork_tenderloin.jpg/320px-Pork_tenderloin.jpg',
-      'pork chop': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Pork_chop.jpg/320px-Pork_chop.jpg',
-      'pork jowl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Pork_jowl.jpg/320px-Pork_jowl.jpg',
-      'bacon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Bacon.jpg/320px-Bacon.jpg',
-      'ham': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Ham.jpg/320px-Ham.jpg',
-      'sausage': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Sausages_on_sale.jpg/320px-Sausages_on_sale.jpg',
-      'ground pork': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Ground_pork.jpg/320px-Ground_pork.jpg',
-      'chicken thigh': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Chicken_thigh.jpg/320px-Chicken_thigh.jpg',
-      'chicken breast': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Chicken_breast.jpg/320px-Chicken_breast.jpg',
-      'chicken wings': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Chicken_wings.jpg/320px-Chicken_wings.jpg',
-      'chicken drumstick': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Chicken_drumstick.jpg/320px-Chicken_drumstick.jpg',
-      'chicken feet': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Chicken_feet.jpg/320px-Chicken_feet.jpg',
-      'whole chicken': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Whole_chicken.jpg/320px-Whole_chicken.jpg',
-      'lamb shank': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Lamb_shank.jpg/320px-Lamb_shank.jpg',
-      'lamb chops': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Lamb_chops.jpg/320px-Lamb_chops.jpg',
-      'lamb leg': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Lamb_leg_roast.jpg/320px-Lamb_leg_roast.jpg',
-      'duck': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Duck_meat.jpg/320px-Duck_meat.jpg'
+      'beef brisket': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=200',
+      'beef flank': 'https://images.unsplash.com/photo-1558030006-450675393462?w=200',
+      'beef chuck': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=200',
+      'beef short ribs': 'https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?w=200',
+      'beef skirt': 'https://images.unsplash.com/photo-1558030006-450675393462?w=200',
+      'beef sirloin': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=200',
+      'beef ribeye': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+      'beef tenderloin': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=200',
+      'beef oxtail': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+      'beef round': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=200',
+      'beef shank': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=200',
+      'beef': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=200',
+      'pork belly': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'pork shoulder': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'pork loin': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'pork ribs': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+      'pork hock': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'pork feet': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'pork tenderloin': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'pork chop': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'pork': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'bacon': 'https://images.unsplash.com/photo-1606851181064-d6a567f8b0b7?w=200',
+      'ham': 'https://images.unsplash.com/photo-1606851181064-d6a567f8b0b7?w=200',
+      'sausage': 'https://images.unsplash.com/photo-1606851181064-d6a567f8b0b7?w=200',
+      'ground pork': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=200',
+      'chicken thigh': 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200',
+      'chicken breast': 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200',
+      'chicken wings': 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200',
+      'chicken drumstick': 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200',
+      'chicken feet': 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200',
+      'chicken': 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200',
+      'lamb shank': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+      'lamb chops': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+      'lamb leg': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+      'lamb': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+      'duck': 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200'
     };
     
-    const loadSubImg = async (en, zh, idx) => {
+    const loadSubImg = (en, zh, idx) => {
       if (!en) return '';
       const cacheKey = en + idx;
-      if (subImgCache[cacheKey]) return subImgCache[cacheKey];
+      if (window._subImgCache && window._subImgCache[cacheKey]) return window._subImgCache[cacheKey];
       
       const z = zh || '';
       const enLower = en.toLowerCase();
       
       for (const [key, url] of Object.entries(MEAT_IMAGE_MAP)) {
         if (enLower.includes(key) || key.includes(enLower)) {
-          subImgCache[cacheKey] = url;
+          if (!window._subImgCache) window._subImgCache = {};
+          window._subImgCache[cacheKey] = url;
           return url;
         }
       }
-      
-      const searchTerm = en.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-      let queries = [];
-      if (z.includes('牛') || z.includes('猪') || z.includes('羊') || z.includes('肉')) {
-        queries = [
-          searchTerm + ' raw butcher meat counter',
-          searchTerm + ' fresh meat cut grocery',
-          searchTerm + ' uncooked beef pork',
-          searchTerm + ' meat market wholesale'
-        ];
-      } else {
-        queries = [searchTerm + ' food ingredient', searchTerm];
-      }
-      
-      try {
-        for (let q = 0; q < queries.length; q++) {
-          const page = (idx + q) % 3 + 1;
-          const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(queries[q])}&per_page=10&page=${page}&orientation=landscape`, {
-            headers: { Authorization: `Client-ID ${UNSPLASH_KEY}` }
-          });
-          const data = await res.json();
-          const results = data.results || [];
-          if (results.length > 0) {
-            const resultIdx = idx % results.length;
-            const r = results[resultIdx];
-            const url = r?.urls?.small || r?.urls?.thumb || '';
-            if (url) {
-              subImgCache[cacheKey] = url;
-              return url;
-            }
-          }
-        }
-      } catch(e) {}
       return '';
     };
     
-    const subItemsHTML = await Promise.all(r.substitutes.map(async (s, i) => {
+    const subItemsHTML = r.substitutes.map((s, i) => {
       const sameCat = s.same_category === true || s.same_category === 'true';
       const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
       const icon = getSubIcon(s.zh);
-      const imgUrl = await loadSubImg(s.en, s.zh, i);
+      const imgUrl = loadSubImg(s.en, s.zh, i);
       const imgHTML = imgUrl ? `<img src="${imgUrl}" alt="${s.zh}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px" onerror="this.style.display='none'">` : '';
       return `<div class="sub-result-item">
         ${imgHTML}
@@ -2542,7 +2509,7 @@ chicken feet → pork feet → duck feet
         <div class="sub-flavor">${s.flavor_change}</div>
         <div class="sub-ratio">用量：${s.ratio} · 适合：${s.best_for}</div>
       </div>`;
-    }));
+    });
     
     result.innerHTML = `<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">原食材</div><div style="font-size:15px;font-weight:500">${r.original}</div></div>` +
       subItemsHTML.join('') +
