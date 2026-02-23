@@ -2329,12 +2329,33 @@ async function doSave(zh,store,zip,reviewText) {
   btn.innerHTML='<span style="display:inline-flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 发布到社区</span>'; document.getElementById('submit-btn').onclick=submitReview;
   toggleSubmit(); renderFeed();
 }
+function getMyVotes() {
+  try {
+    const v = localStorage.getItem('my-votes');
+    return v ? JSON.parse(v) : {};
+  } catch(e) { return {}; }
+}
+function saveMyVote(id, dir) {
+  const votes = getMyVotes();
+  if (dir === null) delete votes[id];
+  else votes[id] = dir;
+  localStorage.setItem('my-votes', JSON.stringify(votes));
+}
 async function vote(id, dir) {
+  const myVotes = getMyVotes();
+  const prevVote = myVotes[id];
   const list = await getReviews();
   const r = list.find(r => r.id === id);
   if (!r) return;
   if (!r.votes) r.votes = {up: 0, down: 0};
-  r.votes[dir]++;
+  if (prevVote === dir) {
+    r.votes[dir] = Math.max(0, r.votes[dir] - 1);
+    saveMyVote(id, null);
+  } else {
+    if (prevVote) r.votes[prevVote] = Math.max(0, r.votes[prevVote] - 1);
+    r.votes[dir]++;
+    saveMyVote(id, dir);
+  }
   await updateReview(id, { votes: r.votes });
 
   if (dir === 'down') {
@@ -2358,10 +2379,20 @@ async function vote(id, dir) {
   }
 }
 
-function undoHide(id) {
+async function undoHide(id) {
   document.getElementById('undo-toast')?.remove();
-  const card = document.getElementById('review-' + id);
-  if (card) card.style.display = '';
+  const myVotes = getMyVotes();
+  const prevVote = myVotes[id];
+  if (prevVote) {
+    const list = await getReviews();
+    const r = list.find(r => r.id === id);
+    if (r && r.votes) {
+      r.votes[prevVote] = Math.max(0, r.votes[prevVote] - 1);
+      await updateReview(id, { votes: r.votes });
+    }
+    saveMyVote(id, null);
+  }
+  renderFeed();
   showToast('已撤回');
 }
 async function addComment(id,text) {
@@ -2473,6 +2504,7 @@ async function renderFeed() {
         storeF=document.getElementById('filter-store')?.value.trim().toLowerCase()||'',
         itemF=document.getElementById('filter-item')?.value.trim()||'';
   let list = await getReviews();
+  const myVotes = getMyVotes();
   if(zipF) list=list.filter(r=>r.zip.includes(zipF));
   if(storeF) list=list.filter(r=>r.store.toLowerCase().includes(storeF));
   if(itemF) list=list.filter(r=>r.zh.includes(itemF)||(r.en||'').toLowerCase().includes(itemF.toLowerCase()));
@@ -2480,6 +2512,9 @@ async function renderFeed() {
   if(!list.length) { feed.innerHTML='<div class="empty-state"><span class="big" style="display:block;color:var(--green-mid)"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22c1.25-1.25 2.83-2 4.5-2 3.5 0 3.5 2 7 2 1.67 0 3.25-.75 4.5-2"/><path d="M6 10.5C6 6.36 9.36 3 13.5 3S21 6.36 21 10.5c0 4-3 8-7.5 9C9 18.5 6 14.5 6 10.5z"/></svg></span><p>'+(zipF||storeF||itemF?'没有符合条件的评价':'还没有评价，来分享第一条！')+'</p></div>'; return; }
   feed.innerHTML = list.map(r => {
     const votes=r.votes||{up:0,down:0}, comments=r.comments||[];
+    const myVote = myVotes[r.id];
+    const upActive = myVote==='up'?' style="background:var(--green);color:#fff;border-color:var(--green)"':'';
+    const downActive = myVote==='down'?' style="background:var(--red);color:#fff;border-color:var(--red)"':'';
     return '<div class="review-card">'+
       '<div class="review-top">'+
       (r.photo?'<img class="review-photo" src="'+r.photo+'" alt="">':'<div class="review-photo-placeholder" style="display:flex;align-items:center;justify-content:center">'+(r.sentiment==='good'?'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red)"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>')+'</div>')+
@@ -2490,8 +2525,8 @@ async function renderFeed() {
       '<div class="review-meta"><span class="meta-tag tag-store">'+r.store+'</span><span class="meta-tag tag-zip">'+r.zip+'</span>'+freshnessLabel(r.timestamp)+'</div>'+
       '</div></div>'+
       '<div class="vote-row">'+
-      '<button class="vote-btn" onclick="vote(\''+r.id+'\',\'up\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg> 有用'+(votes.up>0?' '+votes.up:'')+'</button>'+
-      '<button class="vote-btn" onclick="vote(\''+r.id+'\',\'down\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg> 没用'+(votes.down>0?' '+votes.down:'')+'</button>'+
+      '<button class="vote-btn"'+upActive+' onclick="vote(\''+r.id+'\',\'up\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg> 有用'+(votes.up>0?' '+votes.up:'')+'</button>'+
+      '<button class="vote-btn"'+downActive+' onclick="vote(\''+r.id+'\',\'down\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg> 没用'+(votes.down>0?' '+votes.down:'')+'</button>'+
       '<button class="toggle-comments-btn" onclick="toggleComments(\''+r.id+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> '+(comments.length>0?comments.length+'条回复':'回复')+'</button>'+
       (votes.up>0?'<span class="helpful-label">'+votes.up+'人觉得有用</span>':'')+
       '</div>'+
