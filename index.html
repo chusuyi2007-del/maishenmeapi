@@ -1782,30 +1782,65 @@ async function doParseRecipe(recipe, variant) {
 - 鸡爪(chicken feet) ≠ 鸡翅(chicken wings) ≠ 鸡腿(chicken thigh)
 - 五花肉(pork belly) ≠ 梅花肉(pork shoulder)
 - 老抽(dark soy sauce) ≠ 生抽(light soy sauce)
-如果某食材在美国超市不常见（如牛鞭），请如实说明并给出可能的购买渠道（亚洲超市/网购）。
 
-【肉类部位要求】当用户输入"牛肉"、"猪肉"、"鸡肉"等通用肉类时，必须细化为具体部位：
-- 牛肉(beef) → 必须给出具体部位如：beef brisket(牛腩)、beef skirt(牛裙肉)、ribeye(肋眼牛排)、sirloin(西冷牛排)、chuck(牛肩胛肉)、short ribs(牛小排)、oxtail(牛尾)、flank(牛腹肉)、tenderloin(牛里脊)、round(牛后腿肉)等
-- 猪肉(pork) → pork belly(五花肉)、pork shoulder(梅花肉)、pork loin(猪里脊)、pork ribs(猪排骨)、pork feet(猪蹄)、bacon(培根)、ham(火腿)等
-- 鸡肉(chicken) → chicken breast(鸡胸)、chicken thigh(鸡腿)、chicken wings(鸡翅)、chicken feet(鸡爪)、whole chicken(整鸡)等
+【中国菜谱肉类部位精确对照表】（必须严格遵守）：
+根据菜谱做法选择最合适的美超部位：
+
+中餐菜名 → 美国超市部位：
+- 红烧肉/东坡肉 → pork belly（五花肉）
+- 糖醋里脊 → pork loin（猪里脊）
+- 锅包肉 → pork loin 或 pork cutlet
+- 宫保鸡丁 → chicken thigh（鸡腿肉）
+- 黄焖鸡 → chicken thigh
+- 辣子鸡 → chicken wings（鸡翅）或 chicken thigh
+- 可乐鸡翅 → chicken wings
+- 炖牛肉/红烧牛肉 → beef brisket（牛腩）
+- 牛腩煲 → beef brisket
+- 牛排煎烤 → ribeye / sirloin / NY strip
+- 炒牛肉丝/牛肉炒饭 → beef flank（牛腹肉）或 beef sirloin
+- 牛尾汤 → oxtail（牛尾）
+- 羊蝎子/炖羊肉 → lamb shank
+- 烤羊排 → lamb chops
+- 猪手/猪蹄膀 → pork hock/pork knuckle
+- 叉烧 → pork shoulder
+- 腊肉/熏肉 → bacon 或 pork belly
+
+如果菜谱没有明确做法，按以下默认：
+- 牛肉 → beef brisket（牛腩）最常用
+- 猪肉 → pork belly（五花肉）最常用
+- 鸡肉 → chicken thigh（鸡腿肉）最常用
+
+【美国超市常见肉类部位英文对照】：
+Beef（牛肉）：brisket(牛腩)、chuck(肩胛)、rib(肋排)、short ribs(小排)、ribeye(肋眼)、sirloin(西冷)、tenderloin(里脊)、flank(腹肉)、round(后腿)、shank(腱子)、oxtail(牛尾)、tripe(牛肚)、tongue(牛舌)
+Pork（猪肉）：belly(五花)、shoulder(梅花/肩)、loin(里脊)、ribs(排骨)、tenderloin(小里脊)、hock(蹄髈)、feet(猪蹄)、jowl(腮肉)、bacon(培根)、ham(火腿)
+Chicken（鸡肉）：breast(胸肉)、thigh(腿肉)、wing(翅)、drumstick(小腿)、feet(爪)、neck(颈)、back(背)、liver(肝)、gizzard(胗)
 
 要求：
-1. zh字段必须与用户输入的食材名完全一致，不得自行替换。但如果用户只输入"牛肉"，必须细化为具体部位（如牛腩、牛裙肉）并保留在zh字段
-2. en字段用美国超市货架上的准确英文名（包括具体部位）
+1. zh字段必须根据菜谱做法选择最合适的部位名称，不能是通用词
+2. en字段用美国超市货架上的准确英文名（按上表选择）
 3. section 必须是：Produce, Meat, Seafood, Dairy, Bakery, Asian/International, Condiments/Sauces, Frozen, Canned Goods, Spices
 4. tip 要具体，告诉用户在美国超市怎么找，或者去哪类超市找
-5. typical_unit 是美国人习惯的购买单位
+5. typical_unit 是美国人习惯的购买单位（如1 lb, 1 pack等）
+6. cut_tip 是关键！如果美国买的部位需要自己切才能做成菜谱要求的形状（如吊龙、牛肉片、肉丝等），必须给出如何切的具体指导！
+
+【美国买肉如何切参考】：
+- 吊龙/牛肉片 → 买 ribeye 或 sirloin，垂直纹理冷冻1小时后横着切成薄片
+- 牛肉丝 → 买 beef flank 或 chuck，冷冻后顺着纹理切成细丝
+- 五花肉块 → 买 pork belly，直接切块即可
+- 猪里脊片 → 买 pork loin，切成薄片后用刀背敲松
+- 鸡腿肉 → 买 chicken thigh，去骨后切块即可
 
 返回JSON格式：
 {
   "dish": "菜名",
   "ingredients": [
     {
-      "zh": "如果是牛肉/猪肉/鸡肉等，必须是具体部位（如牛腩、五花肉、鸡腿），不能是通用词",
-      "en": "准确的美国超市英文名（含部位）",
+      "zh": "具体部位中文名（如牛腩、五花肉、鸡腿肉）",
+      "en": "美国超市英文部位名",
       "section": "分区",
       "tip": "具体购买提示",
-      "typical_unit": "典型用量"
+      "typical_unit": "典型用量",
+      "cut_tip": "如何切肉的指导（如果需要）"
     }
   ]
 }
@@ -1940,12 +1975,15 @@ function clItemHTML(ing, i) {
     });
   }
 
+  const cutTip = ing.cut_tip ? `<div style="font-size:10px;color:var(--blue);margin-top:2px;display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>切法：${ing.cut_tip}</div>` : '';
+  
   return `<div class="cl-item ${state}" id="cl-item-${idx}" onclick="toggleItem(${idx})">
     <div class="cl-checkbox">${checkIcon}</div>
     ${thumbHTML}
     <div class="cl-info">
       <div class="cl-zh">${ing.zh}</div>
       <div class="cl-en">${ing.en} · ${ing.section}</div>
+      ${cutTip}
     </div>
     ${actions}
     <button class="ing-info-btn" onclick="event.stopPropagation();openIngDetail(${idx})" title="查看详情">ℹ</button>
@@ -2185,19 +2223,38 @@ async function findSubs() {
   result.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:13px">正在查找替代方案…</div>';
   try {
     const t = await callAI([{role:'user', content:'我在'+storeDesc+'找不到：'+item+'，请推荐替代品'}],
-      `你是帮助留学生在美国超市购物的专家。推荐2-3个替代品。
+      `你是帮助留学生在美国超市购物的专家。
 
-【替代优先级】对于肉类，优先推荐同种动物的不同部位：
-- 如果原食材是牛肉的不同部位（如牛腩、牛裙肉、牛排等），优先推荐其他牛肉部位（如牛肩胛、牛尾、牛腹肉等）
-- 如果原食材是猪肉的不同部位（如五花肉、梅花肉、排骨等），优先推荐其他猪肉部位
-- 如果原食材是鸡肉的不同部位（如鸡腿、鸡翅、鸡胸等），优先推荐其他鸡肉部位
-- 如果原食材是整类（如"牛肉"、"猪肉"、"鸡肉"），则推荐不同肉类
+【肉类替代优先表】先查下面表格，找不到再推荐其他肉类：
 
-对于其他食材，优先推荐：
-1. 同类型可替代的食材
-2. 在当地超市更容易找到的食材
+Beef替代（按顺序优先）：
+beef brisket → beef chuck → beef short ribs → beef skirt → beef flank
+beef chuck → beef brisket → beef shoulder → beef short ribs
+beef short ribs → beef ribs → beef chuck → beef brisket
+beef skirt → beef flank → beef brisket
+beef flank → beef skirt → beef sirloin
+beef ribeye → beef sirloin → NY strip
+beef sirloin → beef tenderloin → beef ribeye
+beef oxtail → beef shank → beef short ribs
+beef tenderloin → beef sirloin → beef ribeye
 
-返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文","en":"English name","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景","same_category":"是否是同类型不同部位（true/false）"}],"tip":"总体建议"}
+Pork替代：
+pork belly → pork shoulder → bacon → pork ribs
+pork shoulder → pork belly → pork loin
+pork ribs → pork belly → pork shoulder
+pork loin → pork tenderloin → pork shoulder
+pork hock → pork feet → pork belly
+pork feet → pork hock → chicken feet
+
+Chicken替代：
+chicken thigh → chicken breast → chicken wings
+chicken breast → chicken thigh → chicken tender
+chicken wings → chicken thigh → chicken drumstick
+chicken feet → pork feet → duck feet
+
+请严格按照上述优先级推荐替代品。如果原食材不在表中，再推荐其他方案。
+
+返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文","en":"English name","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景","same_category":"是否是同部位替代（true/false）"}],"tip":"总体建议"}
 只返回JSON。`);
     const r = parseJSON(t); stop();
     const ac = {'容易找到':'var(--green)', '较容易':'var(--yellow)', '可能需要找找':'var(--muted)'};
@@ -3750,6 +3807,11 @@ brands给2-3个，针对${storeCtx || '美国超市'}常见品牌。只返回JSO
         <div class="ing-modal-section-title">怎么挑选</div>
         <div class="ing-modal-text">${data.buy_tip}</div>
       </div>
+
+      ${ing.cut_tip ? `<div class="ing-modal-section">
+        <div class="ing-modal-section-title">🔪 切法指导</div>
+        <div class="ing-modal-text" style="background:var(--blue-light);padding:10px;border-radius:8px;border:1px solid #a0cff0">${ing.cut_tip}</div>
+      </div>` : ''}
 
       <div class="ing-modal-section">
         <div class="ing-modal-section-title">推荐品牌</div>
