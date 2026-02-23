@@ -1723,6 +1723,28 @@ async function parseRecipe() {
 
     txt.innerHTML = ldots() + ' 识别菜名';
     
+    // Step 0: check if multiple dishes
+    const multiCheckT = await callAI(
+      [{role:'user', content: recipe}],
+      `判断用户输入的是一道菜还是多道菜（用逗号、顿号、或"和"分隔）。
+返回JSON：
+{
+  "is_multiple": true或false,
+  "dishes": ["菜1", "菜2", ...] // 如果是多道菜，返回所有菜名数组
+}
+如果只是单一道菜，dishes返回空数组。只返回JSON。`, 400);
+    
+    const multiCheck = parseJSON(multiCheckT);
+    
+    // If multiple dishes, parse all together
+    if (multiCheck.is_multiple && multiCheck.dishes && multiCheck.dishes.length >= 2) {
+      stop();
+      btn.disabled = false;
+      txt.textContent = '重新解析';
+      await doParseMultipleRecipes(multiCheck.dishes);
+      return;
+    }
+    
     // Step 1: check if dish has multiple regional variants worth asking about
     const checkT = await callAI(
       [{role:'user', content: recipe}],
@@ -1786,6 +1808,68 @@ async function pickVariant(originalInput, variantIdx) {
     ? `${originalInput}（${variant.name}，${variant.region}风味，特色：${variant.key_ingredients?.join('、')}）`
     : originalInput;
   await doParseRecipe(enriched, variant);
+}
+
+async function doParseMultipleRecipes(dishes) {
+  const btn = document.getElementById('parse-btn'), txt = document.getElementById('parse-text');
+  btn.disabled = true;
+  txt.innerHTML = ldots() + ' 生成多道菜清单';
+  const stop = startProg('parse-fill', 'parse-prog');
+  const locCtx = userLocation.city ? `用户位置：${userLocation.city}，常去超市：${{regular:'普通超市(Walmart/Target)',asian:'亚裔超市(H Mart/99Ranch)',whole:'Whole Foods',any:'各类超市'}[userLocation.storeType]}。` : '';
+
+  try {
+    const dishesStr = dishes.join('、');
+    const t = await callAI([{role:'user', content:'解析多道菜的食材：' + dishesStr}],
+      `你是专门帮助中国留学生在美国超市购物的助手。${locCtx}
+
+任务：同时解析以下${dishes.length}道菜的食材清单，然后合并相同食材。
+
+【重要】肉类部位必须精确：
+- 红烧肉/东坡肉 → pork belly（五花肉）
+- 糖醋里脊 → pork loin（猪里脊）
+- 宫保鸡丁 → chicken thigh（鸡腿肉）
+- 炖牛肉/红烧牛肉 → beef brisket（牛腩）
+- 牛排 → ribeye / sirloin
+- 牛肉丝/牛肉炒饭 → beef flank
+- 猪手 → pork hock
+- 鸡翅 → chicken wings
+
+返回JSON格式：
+{
+  "dishes": ["菜1", "菜2", ...],
+  "merged_ingredients": [
+    {
+      "zh": "食材中文名（具体部位）",
+      "en": "美国超市英文名",
+      "section": "分区",
+      "tip": "购买提示",
+      "typical_unit": "典型用量",
+      "cut_tip": "切法指导（如需要）",
+      "from_dishes": ["菜1", "菜2"] // 这个食材来自哪几道菜
+    }
+  ]
+}
+
+只返回JSON，不要其他文字。`);
+
+    const p = parseJSON(t);
+    shoppingList = p.merged_ingredients || [];
+    shoppingList._dish = (p.dishes || dishes).join(' + ') + ' · 购物清单';
+    saveChecklist();
+    renderIngredients();
+    checkExpiryOnShop(shoppingList);
+    preloadIngImages(shoppingList).then(() => renderChecklist());
+    renderScanList();
+    renderSubList();
+    renderIngStoreMap();
+  } catch(e) {
+    console.error('doParseMultipleRecipes error:', e);
+    const msg = e.message || String(e);
+    document.getElementById('checklist-empty').style.display = 'block';
+    document.getElementById('checklist-empty').innerHTML = `<div class="empty-state" style="padding:24px 0"><span class="big" style="display:block;color:var(--red)"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><p style="color:var(--red);font-size:12px">${msg}</p></div>`;
+    document.getElementById('checklist-container').style.display = 'none';
+  }
+  stop(); btn.disabled = false; txt.textContent = '重新解析';
 }
 
 async function doParseRecipe(recipe, variant) {
@@ -1994,7 +2078,7 @@ function clItemHTML(ing, i) {
 
   // Async load thumbnail if not cached
   if (!cachedImg) {
-    getUnsplashImg((ing.en || ing.zh) + ' food ingredient', 'thumb').then(url => {
+    getUnsplashImg(ing.zh + ' food ingredient', 'thumb', true).then(url => {
       if (!url) return;
       const ph = document.getElementById('thumb-' + idx);
       if (ph) ph.outerHTML = `<img class="cl-thumb" src="${url}" alt="${ing.zh}">`;
@@ -2003,6 +2087,10 @@ function clItemHTML(ing, i) {
 
   const cutTip = ing.cut_tip ? `<div style="font-size:10px;color:var(--blue);margin-top:2px;display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>切法：${ing.cut_tip}</div>` : '';
   
+  const fromDishes = ing.from_dishes && ing.from_dishes.length > 0 
+    ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">来自：${ing.from_dishes.join('、')}</div>` 
+    : '';
+  
   return `<div class="cl-item ${state}" id="cl-item-${idx}" onclick="toggleItem(${idx})">
     <div class="cl-checkbox">${checkIcon}</div>
     ${thumbHTML}
@@ -2010,6 +2098,7 @@ function clItemHTML(ing, i) {
       <div class="cl-zh">${ing.zh}</div>
       <div class="cl-en">${ing.en} · ${ing.section}</div>
       ${cutTip}
+      ${fromDishes}
     </div>
     ${actions}
     <button class="ing-info-btn" onclick="event.stopPropagation();openIngDetail(${idx})" title="查看详情">ℹ</button>
@@ -3623,24 +3712,61 @@ async function renderStores() {
 const UNSPLASH_KEY = '-oBY_O74ZKUGeUgnjCKHnLaCAfwp7W8dRXsJOrMiW-s';
 const imgCache = {};
 
-async function getUnsplashImg(query, size = 'small') {
-  const key = query + '_' + size;
+const INGREDIENT_IMAGE_MAP = {
+  '五花肉': '五花肉 猪肉', '牛腩': '牛腩 牛肉', '鸡腿': '鸡腿 鸡肉', '鸡翅': '鸡翅 鸡肉',
+  '鸡胸': '鸡胸 鸡肉', '猪里脊': '猪里脊 猪肉', '排骨': '排骨 猪肉', '牛肉': '牛肉',
+  '猪肉': '猪肉', '鸡肉': '鸡肉', '羊肉': '羊肉', '虾': '虾 海鲜', '鱼': '鱼 海鲜',
+  '鸡蛋': '鸡蛋', '牛奶': '牛奶', '奶酪': '奶酪', '黄油': '黄油', '奶油': '奶油',
+  '米饭': '米饭', '面条': '面条', '面粉': '面粉', '淀粉': '淀粉',
+  '番茄': '番茄', '西红柿': '番茄', '土豆': '土豆', '胡萝卜': '胡萝卜', '洋葱': '洋葱',
+  '大蒜': '大蒜', '姜': '姜', '葱': '大葱', '香菜': '香菜', '芹菜': '芹菜',
+  '黄瓜': '黄瓜', '青椒': '青椒', '红椒': '红椒', '辣椒': '辣椒', '茄子': '茄子',
+  '蘑菇': '蘑菇', '木耳': '木耳', '豆腐': '豆腐', '豆芽': '豆芽',
+  '生抽': '生抽 酱油', '老抽': '老抽 酱油', '酱油': '酱油', '盐': '盐', '糖': '糖',
+  '醋': '醋', '料酒': '料酒', '蚝油': '蚝油', '豆瓣酱': '豆瓣酱', '甜面酱': '甜面酱',
+  '花生油': '花生油', '食用油': '食用油', '芝麻油': '芝麻油',
+  '白糖': '白糖', '红糖': '红糖', '冰糖': '冰糖',
+  '八角': '八角', '花椒': '花椒', '干辣椒': '干辣椒', '桂皮': '桂皮', '香叶': '香叶',
+  '番茄酱': '番茄酱', '沙拉酱': '沙拉酱', '芥末': '芥末',
+  '可乐': '可乐', '啤酒': '啤酒', '红酒': '红酒'
+};
+
+async function getUnsplashImg(query, size = 'small', forceZh = false) {
+  const isIngredientList = query.includes('food ingredient');
+  let searchTerm = query.replace(' food ingredient', '');
+  
+  let zhTerm = searchTerm;
+  if (isIngredientList && !forceZh) {
+    const match = Object.keys(INGREDIENT_IMAGE_MAP).find(k => searchTerm.toLowerCase().includes(k.toLowerCase()));
+    if (match) {
+      zhTerm = INGREDIENT_IMAGE_MAP[match];
+    }
+  }
+  
+  const key = zhTerm + '_' + size;
   if (imgCache[key]) return imgCache[key];
+  
   try {
-    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
+    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(zhTerm)}&per_page=5&orientation=landscape`, {
       headers: { Authorization: `Client-ID ${UNSPLASH_KEY}` }
     });
     const data = await res.json();
-    const url = data.results?.[0]?.urls?.[size] || data.results?.[0]?.urls?.small || null;
-    if (url) imgCache[key] = url;
-    return url;
+    const results = data.results || [];
+    if (results.length > 0) {
+      const url = results[0].urls?.[size] || results[0].urls?.small || null;
+      if (url) {
+        imgCache[key] = url;
+        return url;
+      }
+    }
+    return null;
   } catch(e) { return null; }
 }
 
 // Preload images for a list of ingredients (zh + en terms)
 async function preloadIngImages(ingredients) {
   await Promise.all(ingredients.map(ing => 
-    getUnsplashImg((ing.en || ing.zh) + ' food ingredient', 'thumb')
+    getUnsplashImg(ing.zh + ' food ingredient', 'thumb', true)
   ));
 }
 
@@ -3769,7 +3895,7 @@ async function openIngDetail(idx) {
   const wrapEl = document.getElementById('ing-modal-img-wrap');
   wrapEl.style.display = 'block';
   imgEl.src = '';
-  getUnsplashImg((ing.en || ing.zh) + ' food ingredient', 'regular').then(url => {
+  getUnsplashImg(ing.zh + ' food ingredient', 'regular', true).then(url => {
     if (url) { imgEl.src = url; }
     else { wrapEl.style.display = 'none'; }
   });
