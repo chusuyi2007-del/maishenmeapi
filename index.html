@@ -2529,7 +2529,7 @@ chicken feet → pork feet → duck feet
       const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
       const icon = getSubIcon(s.zh);
       const imgUrl = await loadSubImg(s.en, s.zh, i);
-      const imgHTML = imgUrl ? `<img src="${imgUrl}" alt="${s.zh}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px">` : '';
+      const imgHTML = imgUrl ? `<img src="${imgUrl}" alt="${s.zh}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px" onerror="this.style.display='none'">` : '';
       return `<div class="sub-result-item">
         ${imgHTML}
         <div class="sub-rank-row"><div class="sub-rank">${i+1}</div>
@@ -4385,12 +4385,17 @@ async function requestNotificationPermission() {
   if (!('Notification' in window)) return false;
   if (Notification.permission === 'granted') return true;
   if (Notification.permission === 'denied') return false;
-  const result = await Notification.requestPermission();
-  return result === 'granted';
+  try {
+    const result = await Notification.requestPermission();
+    return result === 'granted';
+  } catch(e) {
+    return false;
+  }
 }
 
 async function sendExpiryNotifications() {
-  const hasPermission = await requestNotificationPermission();
+  try {
+    const hasPermission = await requestNotificationPermission();
   const urgent = Object.values(inventory).filter(i => i.expiry && getDaysUntilExpiry(i.expiry) <= 2 && getDaysUntilExpiry(i.expiry) >= 0);
   if (!urgent.length) return;
   if (hasPermission) {
@@ -4404,6 +4409,7 @@ async function sendExpiryNotifications() {
   }
   // Always show in-app banner regardless
   checkExpiryNotifications();
+  } catch(e) {}
 }
 // ====== INIT ======
 (async () => {
@@ -4419,7 +4425,7 @@ async function sendExpiryNotifications() {
     renderInventory();
     if (savedTab === 'community') renderFeed();
     checkExpiryNotifications();
-    sendExpiryNotifications().catch(()=>{});
+    sendExpiryNotifications();
     // Request GPS early so it's ready when needed
     requestGPSEarly();
     if (PROXY_URL) {
