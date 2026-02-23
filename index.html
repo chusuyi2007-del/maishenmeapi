@@ -1368,7 +1368,33 @@ async function callAIWithImage(imageData, textPrompt, system, maxTokens = 500) {
   const data = await res.json();
   return data.content?.[0]?.text || '';
 }
-function parseJSON(t) { return JSON.parse(t.replace(/```json|```/g,'').trim()); }
+function parseJSON(t) {
+  // 清理输入
+  let s = t.replace(/```json|```/g, '').trim();
+  
+  // 尝试直接解析
+  try { return JSON.parse(s); } catch(e) {}
+  
+  // 尝试找到JSON对象
+  const match = s.match(/\{[\s\S]*\}/);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch(e) {}
+  }
+  
+  // 尝试找到数组
+  const arrMatch = s.match(/\[[\s\S]*\]/);
+  if (arrMatch) {
+    try { return JSON.parse(arrMatch[0]); } catch(e) {}
+  }
+  
+  // 最后尝试更宽松的匹配
+  const jsonMatch = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  if (jsonMatch) {
+    try { return JSON.parse(jsonMatch[1]); } catch(e) {}
+  }
+  
+  throw new Error('无法解析JSON: ' + s.slice(0, 100));
+}
 function startProg(fid, pid) {
   const p = document.getElementById(pid), f = document.getElementById(fid);
   p.style.display = 'block'; let w = 0;
