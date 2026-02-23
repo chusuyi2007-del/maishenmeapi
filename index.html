@@ -2204,8 +2204,8 @@ function checkBannedWords(text) {
 async function validateImageContent(imageData, itemName) {
   try {
     const t = await callAIWithImage(imageData,
-      '请分析这张图片：1.是否包含不雅/色情/裸露内容 2.图片中的物品是什么？用户声称这是：' + itemName + '。请判断图片内容是否与用户声称的食材相符。',
-      '你是一个图片内容审核助手。需要检测：\n1. 是否包含不雅内容（裸体、性行为、过于暴露的身体部位等）\n2. 是否与用户声称的食材名称相符\n返回JSON：{"safe":true|false,"match":true|false,"detected":"图片中实际是什么","reason":"判断原因（中文，简短）"}\n如果图片不雅，safe为false。只返回JSON。', 300);
+      '请分析这张图片：1.是否包含不雅/色情/裸露内容 2.图片是否与食材"' + itemName + '"相关？\n注意：如果图片是食材本身、食材包装、食材袋子、食材盒子等，都算相关。比如用户说"耙耙柑"，图片是耙耙柑的包装袋或水果本身，都算匹配。',
+      '你是食材图片审核助手。判断：\n1. 是否不雅内容（裸体、性行为等）→ safe=false\n2. 是否与食材相关（食材本身、包装、袋子、标签、价格牌等都算相关）→ match=true\n\n宽松判断：只要图片内容与该食材有关联就通过。\n返回JSON：{"safe":true|false,"match":true|false,"detected":"简述图片内容","reason":"简短原因"}\n只返回JSON。', 300);
     return parseJSON(t);
   } catch(e) {
     console.warn('Image validation failed:', e);
@@ -2373,6 +2373,38 @@ function handleReviewPhoto(e) {
   rd.onload = ev => { reviewPhotoData = ev.target.result; const img = document.getElementById('review-preview'); img.src = ev.target.result; img.style.display = 'block'; };
   rd.readAsDataURL(file);
 }
+async function validateLocation(zip, store) {
+  if (!/^\d{5}$/.test(zip)) {
+    return { valid: false, reason: '请输入有效的5位邮编（如 94102）' };
+  }
+  try {
+    const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+    if (!res.ok) {
+      return { valid: false, reason: '邮编 ' + zip + ' 不存在，请检查' };
+    }
+    const data = await res.json();
+    const city = data.places?.[0]?.['place name'] || '';
+    const state = data.places?.[0]?.['state abbreviation'] || '';
+    const t = await callAI([{role:'user', content:
+      `验证这个超市信息是否合理：
+邮编：${zip}（对应城市：${city}, ${state}）
+超市名：${store}
+
+请判断：
+1. 这个超市名是否像一个真实的超市名称（而不是乱填的）
+2. 在这个城市是否有这个超市的可能性
+
+返回JSON：{"valid":true|false,"reason":"原因（中文）","city":"城市名"}
+只返回JSON。`}],
+      '你是地理位置验证助手。判断超市信息是否合理。\n注意：大型连锁超市（Walmart, Target, Whole Foods, H Mart, 99 Ranch等）在全美很多城市都有，除非明显不合理否则应该通过。\n只有当超市名明显是乱填的（如"啊实打实"、"123456"等）才返回valid=false。\n返回JSON：{"valid":true|false,"reason":"原因"}', 300);
+    const result = parseJSON(t);
+    result.city = city;
+    return result;
+  } catch(e) {
+    console.warn('Location validation failed:', e);
+    return { valid: true };
+  }
+}
 async function submitReview() {
   const zh=document.getElementById('r-item-zh').value.trim(), store=document.getElementById('r-store').value.trim(),
         zip=document.getElementById('r-zip').value.trim(), reviewText=document.getElementById('r-text').value.trim();
@@ -2381,6 +2413,14 @@ async function submitReview() {
   
   const btn = document.getElementById('submit-btn-text');
   btn.innerHTML = ldots() + ' 验证中…'; banner.style.display = 'none';
+  
+  const locVal = await validateLocation(zip, store);
+  if (!locVal.valid) {
+    banner.className='mod-banner block'; banner.style.display='block';
+    banner.innerHTML = '<strong>位置信息有误：</strong>' + locVal.reason;
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 发布到社区</span>';
+    return;
+  }
   
   // Validate ingredient name
   try {
