@@ -2412,23 +2412,64 @@ chicken feet → pork feet → duck feet
 
 请严格按照上述优先级推荐替代品。如果原食材不在表中，再推荐其他方案。
 
-返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文","en":"English name","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景","same_category":"是否是同部位替代（true/false）"}],"tip":"总体建议"}
+【输出格式要求】
+1. zh字段：中文名，开头大写（如"牛腩"、"五花肉"、"鸡腿肉"）
+2. en字段：美国超市能买到的准确英文名（如"pork belly"、"beef brisket"）
+
+返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文（开头大写）","en":"美国超市英文名","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景","same_category":"是否是同部位替代（true/false）"}],"tip":"总体建议"}
 只返回JSON。`);
     const r = parseJSON(t); stop();
     const ac = {'容易找到':'var(--green)', '较容易':'var(--yellow)', '可能需要找找':'var(--muted)'};
-    result.innerHTML = `<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">原食材</div><div style="font-size:15px;font-weight:500">${r.original}</div></div>` +
-      r.substitutes.map((s,i) => {
-        const sameCat = s.same_category === true || s.same_category === 'true';
-        const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
-        return `<div class="sub-result-item">
+    
+    const getSubIcon = (zh) => {
+      if (!zh) return '📦';
+      const z = zh.toLowerCase();
+      if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉')) return '🥩';
+      if (z.includes('鸡') || z.includes('鸭') || z.includes('鹅')) return '🍗';
+      if (z.includes('虾') || z.includes('鱼') || z.includes('蟹')) return '🦐';
+      if (z.includes('菜') || z.includes('葱') || z.includes('蒜') || z.includes('姜')) return '🥬';
+      if (z.includes('奶') || z.includes('芝士')) return '🥛';
+      if (z.includes('米') || z.includes('面') || z.includes('粉')) return '🌾';
+      if (z.includes('酱') || z.includes('油') || z.includes('盐')) return '🧂';
+      return '📦';
+    };
+    
+    const loadSubImg = async (en, zh) => {
+      if (!en) return '';
+      try {
+        const searchTerm = en.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerm + ' beef pork food')}&per_page=1&orientation=landscape`, {
+          headers: { Authorization: `Client-ID ${UNSPLASH_KEY}` }
+        });
+        const data = await res.json();
+        const url = data.results?.[0]?.urls?.small || data.results?.[0]?.urls?.thumb;
+        if (url) return url;
+      } catch(e) {}
+      return '';
+    };
+    
+    const subItemsHTML = await Promise.all(r.substitutes.map(async (s, i) => {
+      const sameCat = s.same_category === true || s.same_category === 'true';
+      const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
+      const icon = getSubIcon(s.zh);
+      const imgUrl = await loadSubImg(s.en, s.zh);
+      const imgHTML = imgUrl ? `<img src="${imgUrl}" alt="${s.zh}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px">` : '';
+      return `<div class="sub-result-item">
+        ${imgHTML}
         <div class="sub-rank-row"><div class="sub-rank">${i+1}</div>
-        <div><div class="sub-name">${s.zh}${catTag}</div><div class="sub-en">${s.en}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:24px">${icon}</span>
+          <div><div class="sub-name">${s.zh}${catTag}</div><div class="sub-en">(${s.en ? s.en.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ''})</div></div>
+        </div>
         <div class="sub-avail" style="display:flex;align-items:center;gap:3px;color:${ac[s.availability]||'var(--muted)'}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> ${s.availability}</div></div>
         <div class="sub-where" style="display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> ${s.where}</div>
         <div class="sub-flavor">${s.flavor_change}</div>
         <div class="sub-ratio">用量：${s.ratio} · 适合：${s.best_for}</div>
       </div>`;
-      }).join('') +
+    }));
+    
+    result.innerHTML = `<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">原食材</div><div style="font-size:15px;font-weight:500">${r.original}</div></div>` +
+      subItemsHTML.join('') +
       (r.tip ? `<div style="font-size:11px;color:var(--muted);margin-top:7px;font-style:italic">${r.tip}</div>` : '');
   } catch(e) { stop(); result.innerHTML = '<p style="color:var(--muted);text-align:center;font-size:13px;padding:14px">查找失败，请重试</p>'; }
   btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新查找</span>';
