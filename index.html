@@ -2062,17 +2062,20 @@ const categoryIcons = {
 
 function getIngCategory(zh, section) {
   const s = (section || '').toLowerCase();
-  let cat = 'default';
-  if (s.includes('meat')) cat = 'meat';
-  else if (s.includes('seafood') || zh.includes('虾') || zh.includes('鱼') || zh.includes('蟹')) cat = 'seafood';
-  else if (zh.includes('鸡') || zh.includes('鸭') || zh.includes('鹅')) cat = 'poultry';
-  else if (s.includes('produce') || zh.includes('菜') || zh.includes('葱') || zh.includes('蒜') || zh.includes('姜') || zh.includes('椒')) cat = 'vegetable';
-  else if (zh.includes('果') || zh.includes('香蕉') || zh.includes('苹果')) cat = 'fruit';
-  else if (s.includes('dairy') || zh.includes('奶') || zh.includes('芝士')) cat = 'dairy';
-  else if (zh.includes('米') || zh.includes('面') || zh.includes('粉')) cat = 'grain';
-  else if (s.includes('condiments') || s.includes('sauces') || s.includes('spices')) cat = 'condiments';
-  else if (s.includes('frozen')) cat = 'frozen';
-  return cat;
+  const z = zh || '';
+  
+  // 优先检查中文关键词
+  if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉') || s.includes('meat')) return 'meat';
+  if (z.includes('鸡') || z.includes('鸭') || z.includes('鹅')) return 'poultry';
+  if (z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜')) return 'seafood';
+  if (z.includes('葱') || z.includes('蒜') || z.includes('姜') || z.includes('椒') || z.includes('菜') || z.includes('萝') || z.includes('瓜') || z.includes('茄') || z.includes('土') || z.includes('豆') || z.includes('菇') || z.includes('芹') || z.includes('黄') || s.includes('produce')) return 'vegetable';
+  if (z.includes('果') || z.includes('蕉') || z.includes('苹果') || z.includes('橙') || z.includes('葡')) return 'fruit';
+  if (z.includes('奶') || z.includes('芝士') || z.includes('黄油') || z.includes('cream')) return 'dairy';
+  if (z.includes('米') || z.includes('面') || z.includes('粉') || z.includes('饭') || z.includes('粥') || z.includes('包') || z.includes('饼')) return 'grain';
+  if (z.includes('酱') || z.includes('油') || z.includes('盐') || z.includes('糖') || z.includes('醋') || z.includes('酱油') || z.includes('耗油') || z.includes('料酒') || z.includes('味') || z.includes('鸡精') || z.includes('淀粉') || z.includes('调料') || s.includes('condiments') || s.includes('sauces') || s.includes('spices')) return 'condiments';
+  if (z.includes('冻') || s.includes('frozen')) return 'frozen';
+  
+  return 'default';
 }
 
 function clItemHTML(ing, i) {
@@ -2083,8 +2086,8 @@ function clItemHTML(ing, i) {
 
   let actions = '';
   if (state === 'missing') {
-    actions = `<div class="cl-actions">
-      <button class="cl-action-btn sub" onclick="event.stopPropagation();quickSub('${ing.zh}')" >找替代</button>
+    actions = `<div class="cl-actions" style="display:flex;gap:4px">
+      <button class="cl-action-btn sub" onclick="event.stopPropagation();quickSub('${ing.zh}')" style="flex:1">🔍 找替代</button>
       <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'')">撤销</button>
     </div>`;
   } else if (state === 'done') {
@@ -2092,8 +2095,9 @@ function clItemHTML(ing, i) {
       <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'')">撤销</button>
     </div>`;
   } else {
-    actions = `<div class="cl-actions" style="opacity:0;transition:opacity .15s" class="hover-actions">
-      <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'missing')">没买到</button>
+    actions = `<div class="cl-actions" style="opacity:1;display:flex;gap:4px">
+      <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'done')" style="background:var(--green-light);border-color:var(--green);color:var(--green)">✓ 找到了</button>
+      <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'missing')">没找到</button>
     </div>`;
   }
 
@@ -3923,25 +3927,40 @@ async function openIngDetail(idx) {
 
   // Call Claude for ingredient info
   try {
-    const storeCtx = userLocation.storeType && userLocation.storeType !== 'any'
-      ? {regular:'普通超市(Walmart/Target)', asian:'亚裔超市(H Mart/99Ranch)', whole:'Whole Foods'}[userLocation.storeType] || ''
-      : '';
+    const storeType = userLocation.storeType || 'any';
+    const storeLabels = {
+      regular: '普通超市(Walmart/Target/Kroger)',
+      asian: '亚裔超市(H Mart/99Ranch/大华)',
+      whole: 'Whole Foods/有机超市',
+      any: '各类超市'
+    };
+    const storeCtx = storeType !== 'any' ? storeLabels[storeType] : '';
 
     const t = await callAI([{
       role: 'user',
       content: `食材：${ing.zh}（${ing.en}），用于菜肴：${dish || '未知'}。请介绍这个食材。`
     }],
-    `你是帮助留学生了解食材的助手。用户在美国超市购物。${storeCtx ? '用户常去：'+storeCtx : ''}
+    `你是帮助留学生了解食材的助手。
+
+用户常去的超市类型：${storeCtx}
+
+【关键要求】根据用户常去的超市类型，给出不同的购买建议：
+- 如果是亚裔超市(H Mart/99Ranch/大华)：推荐常见的中式品牌，如李锦记、海天、厨邦等中国品牌，以及当地亚洲食品
+- 如果是普通超市(Walmart/Target/Kroger)：推荐美国常见品牌，告知哪些有替代
+- 如果是Whole Foods/有机超市：告知这类超市通常没有中式调味品，需要去亚裔超市或网购替代
+
 返回JSON：
 {
-  "intro": "食材简介（2句话，说明它是什么、口感/气味特点）",
+  "intro": "食材简介（2句话）",
   "role_in_dish": "在${dish || '这道菜'}中的作用（1-2句）",
-  "buy_tip": "在超市怎么挑选这个食材（1句）",
+  "buy_tip": "在这个超市怎么找这个食材（1-2句）",
+  "store_availability": "这个超市有没有这款食材（有/没有/需要去特定区域找）",
+  "alternative": "如果这个超市没有，告诉我买什么替代",
   "brands": [
-    {"name":"品牌名或推荐款", "desc":"一句话说明为什么推荐", "icon":"相关emoji"}
+    {"name":"在这个超市能买到的品牌", "desc":"为什么推荐这个", "icon":"emoji"}
   ]
 }
-brands给2-3个，针对${storeCtx || '美国超市'}常见品牌。只返回JSON。`, 800);
+brands给2-3个。只返回JSON。`, 800);
 
     const data = parseJSON(t);
 
@@ -3973,6 +3992,12 @@ brands给2-3个，针对${storeCtx || '美国超市'}常见品牌。只返回JSO
         <div class="ing-modal-section-title">怎么挑选</div>
         <div class="ing-modal-text">${data.buy_tip}</div>
       </div>
+
+      ${data.store_availability ? `<div class="ing-modal-section">
+        <div class="ing-modal-section-title">🏪 ${storeLabels[storeType] || '这家超市'}</div>
+        <div class="ing-modal-text" style="${data.store_availability.includes('没有') ? 'color:var(--red)' : 'color:var(--green)'}">${data.store_availability}</div>
+        ${data.alternative ? `<div style="margin-top:8px;font-size:12px;color:var(--ink2)">💡 替代：${data.alternative}</div>` : ''}
+      </div>` : ''}
 
       ${ing.cut_tip ? `<div class="ing-modal-section">
         <div class="ing-modal-section-title">🔪 切法指导</div>
