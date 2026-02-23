@@ -2003,7 +2003,7 @@ function showToast(msg, duration = 2500) {
 let alertResolve = null;
 let promptResolve = null;
 
-function showAlert(title, message, icon = 'info') {
+function showAlert(title, message, icon = 'info', showCancel = false) {
   const icons = {
     info: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
     success: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
@@ -2014,12 +2014,14 @@ function showAlert(title, message, icon = 'info') {
   document.getElementById('alert-title').textContent = title;
   document.getElementById('alert-message').textContent = message;
   document.getElementById('alert-modal').classList.add('open');
+  const cancelBtn = document.getElementById('alert-cancel-btn');
+  if (cancelBtn) cancelBtn.style.display = showCancel ? 'block' : 'none';
   return new Promise(resolve => { alertResolve = resolve; });
 }
 
-function closeAlertModal() {
+function closeAlertModal(cancel = false) {
   document.getElementById('alert-modal').classList.remove('open');
-  if (alertResolve) { alertResolve(true); alertResolve = null; }
+  if (alertResolve) { alertResolve(!cancel); alertResolve = null; }
 }
 
 function showPrompt(title, message, placeholder = '', defaultValue = '') {
@@ -2577,7 +2579,7 @@ async function getReviews() {
 async function saveReview(review) {
   if (supabaseClient) {
     try {
-      const { error } = await supabaseClient.from('reviews').insert([{
+      const { data, error } = await supabaseClient.from('reviews').insert([{
         zh: review.zh,
         en: review.en,
         store: review.store,
@@ -2586,9 +2588,11 @@ async function saveReview(review) {
         sentiment: review.sentiment,
         text: review.text,
         photo: review.photo
-      }]);
+      }]).select('id');
       if (error) throw error;
-      return true;
+      const id = data?.[0]?.id;
+      if (id) recordMyReview(id);
+      return id || true;
     } catch(e) {
       console.error('Supabase saveReview error:', e);
     }
@@ -2601,7 +2605,51 @@ async function saveReview(review) {
   review.comments = [];
   list.unshift(review);
   try { await window.storage.set('reviews', JSON.stringify(list)); } catch(e) { window._r = list; }
-  return true;
+  recordMyReview(review.id);
+  return review.id;
+}
+function getMyReviews() {
+  try {
+    const r = localStorage.getItem('my-reviews');
+    return r ? JSON.parse(r) : [];
+  } catch(e) { return []; }
+}
+function recordMyReview(id) {
+  const myReviews = getMyReviews();
+  if (!myReviews.includes(id)) {
+    myReviews.push(id);
+    localStorage.setItem('my-reviews', JSON.stringify(myReviews));
+  }
+}
+function removeMyReview(id) {
+  const myReviews = getMyReviews();
+  const idx = myReviews.indexOf(id);
+  if (idx >= 0) {
+    myReviews.splice(idx, 1);
+    localStorage.setItem('my-reviews', JSON.stringify(myReviews));
+  }
+}
+async function deleteReview(id) {
+  const confirmed = await showAlert('确认删除', '确定要删除这条评价吗？此操作不可撤销。', 'warning', true);
+  if (!confirmed) return;
+  
+  if (supabaseClient) {
+    try {
+      const { error } = await supabaseClient.from('reviews').delete().eq('id', id);
+      if (error) throw error;
+    } catch(e) {
+      console.error('Supabase deleteReview error:', e);
+      showToast('删除失败');
+      return;
+    }
+  } else {
+    let list = await getReviews();
+    list = list.filter(r => r.id !== id);
+    try { await window.storage.set('reviews', JSON.stringify(list)); } catch(e) { window._r = list; }
+  }
+  removeMyReview(id);
+  showToast('已删除');
+  renderFeed();
 }
 
 async function updateReview(id, updates) {
@@ -2638,9 +2686,12 @@ function renderComments(reviewId, comments, showAll = false) {
   if (!comments || !comments.length) return '';
   const displayComments = showAll ? comments : comments.slice(0, 3);
   const hasMore = comments.length > 3 && !showAll;
+  const myUid = getMyUserId();
   
   function renderComment(c, isNested = false) {
     const replyToHtml = c.replyTo ? `<span class="comment-reply-to">@${c.replyToName || '用户'}</span> ` : '';
+    const isMine = c.authorId === myUid;
+    const deleteBtn = isMine ? `<span class="comment-action" style="color:var(--red)" onclick="event.stopPropagation();deleteComment('${reviewId}', '${c.id || ''}')">删除</span>` : '';
     return `<div class="comment-item${isNested ? ' comment-nested' : ''}" data-cid="${c.id || ''}">
       <div class="comment-avatar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div class="comment-bubble">
@@ -2648,6 +2699,7 @@ function renderComments(reviewId, comments, showAll = false) {
         <div class="comment-time">${freshnessLabel(c.timestamp)}
           <span class="comment-actions">
             <span class="comment-action" onclick="replyToComment('${reviewId}', '${c.id || ''}', '${escapeHtml(c.text).slice(0, 20)}')">回复</span>
+            ${deleteBtn}
           </span>
         </div>
       </div>
@@ -2690,6 +2742,13 @@ function replyToComment(reviewId, commentId, commentText) {
 
 async function addComment(id, text, replyTo = null) {
   if (!text.trim()) return;
+  
+  const banned = checkBannedWords(text);
+  if (banned.blocked) {
+    showToast('评论包含不当词汇，请修改');
+    return;
+  }
+  
   const list = await getReviews();
   const r = list.find(r => r.id === id);
   if (!r) return;
@@ -2706,12 +2765,14 @@ async function addComment(id, text, replyTo = null) {
     }
   }
   
+  const commentId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   r.comments.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    id: commentId,
     text: text.trim(),
     timestamp: Date.now(),
     replyTo: replyToId || null,
-    replyToName: replyToName
+    replyToName: replyToName,
+    authorId: getMyUserId()
   });
   
   if (input) {
@@ -2720,6 +2781,32 @@ async function addComment(id, text, replyTo = null) {
   }
   
   await updateReview(id, { comments: r.comments });
+  renderFeed();
+}
+function getMyUserId() {
+  let uid = localStorage.getItem('my-user-id');
+  if (!uid) {
+    uid = 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem('my-user-id', uid);
+  }
+  return uid;
+}
+async function deleteComment(reviewId, commentId) {
+  const list = await getReviews();
+  const r = list.find(r => r.id === reviewId);
+  if (!r || !r.comments) return;
+  
+  const comment = r.comments.find(c => c.id === commentId);
+  if (!comment) return;
+  
+  if (comment.authorId !== getMyUserId()) {
+    showToast('只能删除自己的评论');
+    return;
+  }
+  
+  r.comments = r.comments.filter(c => c.id !== commentId);
+  await updateReview(reviewId, { comments: r.comments });
+  showToast('已删除');
   renderFeed();
 }
 function toggleComments(id) { document.getElementById('comments-'+id)?.classList.toggle('open'); }
@@ -2732,6 +2819,7 @@ async function renderFeed() {
         itemF=document.getElementById('filter-item')?.value.trim()||'';
   let list = await getReviews();
   const myVotes = getMyVotes();
+  const myReviews = getMyReviews();
   if(zipF) list=list.filter(r=>r.zip.includes(zipF));
   if(storeF) list=list.filter(r=>r.store.toLowerCase().includes(storeF));
   if(itemF) list=list.filter(r=>r.zh.includes(itemF)||(r.en||'').toLowerCase().includes(itemF.toLowerCase()));
@@ -2741,8 +2829,10 @@ async function renderFeed() {
   feed.innerHTML = list.map(r => {
     const votes=r.votes||{up:0,down:0}, comments=r.comments||[];
     const myVote = myVotes[r.id];
+    const isMine = myReviews.includes(r.id);
     const upActive = myVote==='up'?' style="background:var(--green);color:#fff;border-color:var(--green)"':'';
     const downActive = myVote==='down'?' style="background:var(--red);color:#fff;border-color:var(--red)"':'';
+    const deleteBtn = isMine ? '<button class="delete-review-btn" onclick="event.stopPropagation();deleteReview(\''+r.id+'\')" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;margin-left:auto">删除</button>' : '';
     return '<div class="review-card">'+
       '<div class="review-top">'+
       (r.photo?'<img class="review-photo" src="'+r.photo+'" alt="">':'<div class="review-photo-placeholder" style="display:flex;align-items:center;justify-content:center">'+(r.sentiment==='good'?'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red)"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>')+'</div>')+
@@ -2757,6 +2847,7 @@ async function renderFeed() {
       '<button class="vote-btn"'+downActive+' onclick="vote(\''+r.id+'\',\'down\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg> 没用'+(votes.down>0?' '+votes.down:'')+'</button>'+
       '<button class="toggle-comments-btn" onclick="toggleComments(\''+r.id+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> '+(comments.length>0?comments.length+'条回复':'回复')+'</button>'+
       (votes.up>0?'<span class="helpful-label">'+votes.up+'人觉得有用</span>':'')+
+      deleteBtn+
       '</div>'+
       '<div class="comments-section" id="comments-'+r.id+'">'+
       renderComments(r.id, comments)+
@@ -3715,7 +3806,8 @@ if ('serviceWorker' in navigator) {
       <p id="alert-message" style="font-size:13px;color:var(--muted);margin:0;font-weight:300"></p>
     </div>
     <div class="modal-footer" style="padding-top:8px">
-      <button class="btn btn-primary" onclick="closeAlertModal()" style="flex:1">确定</button>
+      <button id="alert-cancel-btn" class="btn" onclick="closeAlertModal(true)" style="flex:1;display:none">取消</button>
+      <button class="btn btn-primary" onclick="closeAlertModal(false)" style="flex:1">确定</button>
     </div>
   </div>
 </div>
