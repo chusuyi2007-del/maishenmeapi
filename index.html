@@ -1784,9 +1784,14 @@ async function doParseRecipe(recipe, variant) {
 - 老抽(dark soy sauce) ≠ 生抽(light soy sauce)
 如果某食材在美国超市不常见（如牛鞭），请如实说明并给出可能的购买渠道（亚洲超市/网购）。
 
+【肉类部位要求】当用户输入"牛肉"、"猪肉"、"鸡肉"等通用肉类时，必须细化为具体部位：
+- 牛肉(beef) → 必须给出具体部位如：beef brisket(牛腩)、beef skirt(牛裙肉)、ribeye(肋眼牛排)、sirloin(西冷牛排)、chuck(牛肩胛肉)、short ribs(牛小排)、oxtail(牛尾)、flank(牛腹肉)、tenderloin(牛里脊)、round(牛后腿肉)等
+- 猪肉(pork) → pork belly(五花肉)、pork shoulder(梅花肉)、pork loin(猪里脊)、pork ribs(猪排骨)、pork feet(猪蹄)、bacon(培根)、ham(火腿)等
+- 鸡肉(chicken) → chicken breast(鸡胸)、chicken thigh(鸡腿)、chicken wings(鸡翅)、chicken feet(鸡爪)、whole chicken(整鸡)等
+
 要求：
-1. zh字段必须与用户输入的食材名完全一致，不得自行替换
-2. en字段用美国超市货架上的准确英文名
+1. zh字段必须与用户输入的食材名完全一致，不得自行替换。但如果用户只输入"牛肉"，必须细化为具体部位（如牛腩、牛裙肉）并保留在zh字段
+2. en字段用美国超市货架上的准确英文名（包括具体部位）
 3. section 必须是：Produce, Meat, Seafood, Dairy, Bakery, Asian/International, Condiments/Sauces, Frozen, Canned Goods, Spices
 4. tip 要具体，告诉用户在美国超市怎么找，或者去哪类超市找
 5. typical_unit 是美国人习惯的购买单位
@@ -1796,8 +1801,8 @@ async function doParseRecipe(recipe, variant) {
   "dish": "菜名",
   "ingredients": [
     {
-      "zh": "与用户输入完全一致的中文名",
-      "en": "准确的美国超市英文名",
+      "zh": "如果是牛肉/猪肉/鸡肉等，必须是具体部位（如牛腩、五花肉、鸡腿），不能是通用词",
+      "en": "准确的美国超市英文名（含部位）",
       "section": "分区",
       "tip": "具体购买提示",
       "typical_unit": "典型用量"
@@ -2180,18 +2185,35 @@ async function findSubs() {
   result.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:13px">正在查找替代方案…</div>';
   try {
     const t = await callAI([{role:'user', content:'我在'+storeDesc+'找不到：'+item+'，请推荐替代品'}],
-      '你是帮助留学生在美国超市购物的专家。推荐2-3个替代品。\n返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文","en":"English name","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景"}],"tip":"总体建议"}\n只返回JSON。');
+      `你是帮助留学生在美国超市购物的专家。推荐2-3个替代品。
+
+【替代优先级】对于肉类，优先推荐同种动物的不同部位：
+- 如果原食材是牛肉的不同部位（如牛腩、牛裙肉、牛排等），优先推荐其他牛肉部位（如牛肩胛、牛尾、牛腹肉等）
+- 如果原食材是猪肉的不同部位（如五花肉、梅花肉、排骨等），优先推荐其他猪肉部位
+- 如果原食材是鸡肉的不同部位（如鸡腿、鸡翅、鸡胸等），优先推荐其他鸡肉部位
+- 如果原食材是整类（如"牛肉"、"猪肉"、"鸡肉"），则推荐不同肉类
+
+对于其他食材，优先推荐：
+1. 同类型可替代的食材
+2. 在当地超市更容易找到的食材
+
+返回JSON：{"original":"原食材名","substitutes":[{"zh":"替代品中文","en":"English name","where":"在哪里找","availability":"容易找到|较容易|可能需要找找","flavor_change":"风味差异","ratio":"用量比例","best_for":"最适合场景","same_category":"是否是同类型不同部位（true/false）"}],"tip":"总体建议"}
+只返回JSON。`);
     const r = parseJSON(t); stop();
     const ac = {'容易找到':'var(--green)', '较容易':'var(--yellow)', '可能需要找找':'var(--muted)'};
     result.innerHTML = `<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">原食材</div><div style="font-size:15px;font-weight:500">${r.original}</div></div>` +
-      r.substitutes.map((s,i) => `<div class="sub-result-item">
+      r.substitutes.map((s,i) => {
+        const sameCat = s.same_category === true || s.same_category === 'true';
+        const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
+        return `<div class="sub-result-item">
         <div class="sub-rank-row"><div class="sub-rank">${i+1}</div>
-        <div><div class="sub-name">${s.zh}</div><div class="sub-en">${s.en}</div></div>
+        <div><div class="sub-name">${s.zh}${catTag}</div><div class="sub-en">${s.en}</div></div>
         <div class="sub-avail" style="display:flex;align-items:center;gap:3px;color:${ac[s.availability]||'var(--muted)'}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> ${s.availability}</div></div>
         <div class="sub-where" style="display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> ${s.where}</div>
         <div class="sub-flavor">${s.flavor_change}</div>
         <div class="sub-ratio">用量：${s.ratio} · 适合：${s.best_for}</div>
-      </div>`).join('') +
+      </div>`;
+      }).join('') +
       (r.tip ? `<div style="font-size:11px;color:var(--muted);margin-top:7px;font-style:italic">${r.tip}</div>` : '');
   } catch(e) { stop(); result.innerHTML = '<p style="color:var(--muted);text-align:center;font-size:13px;padding:14px">查找失败，请重试</p>'; }
   btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新查找</span>';
