@@ -1858,7 +1858,7 @@ async function doParseMultipleRecipes(dishes) {
     saveChecklist();
     renderIngredients();
     checkExpiryOnShop(shoppingList);
-    preloadIngImages(shoppingList).then(() => renderChecklist());
+    renderChecklist();
     renderScanList();
     renderSubList();
     renderIngStoreMap();
@@ -1962,7 +1962,7 @@ Chicken（鸡肉）：breast(胸肉)、thigh(腿肉)、wing(翅)、drumstick(小
     saveChecklist();
     renderIngredients();
     checkExpiryOnShop(shoppingList);
-    preloadIngImages(shoppingList).then(() => renderChecklist());
+    renderChecklist();
     renderScanList();
     renderSubList();
     renderIngStoreMap();
@@ -2047,6 +2047,34 @@ async function deductAndAddInventory() {
   document.getElementById('cl-deduct-banner').style.display = 'none';
 }
 
+const categoryIcons = {
+  meat: { color: '#c0392b', icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>', label: '🥩' },
+  seafood: { color: '#3498db', icon: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>', label: '🦐' },
+  poultry: { color: '#f39c12', icon: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', label: '🍗' },
+  vegetable: { color: '#27ae60', icon: '<path d="M12 22v-7l-2-2"/><path d="M17 8h.01"/><path d="M7.5 15a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/><path d="M15.5 15a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/><path d="M17 14c.5.5 1 1.5 1 2.5s-.5 2-1 2.5"/><path d="M7 14c-.5.5-1 1.5-1 2.5s.5 2 1 2.5"/>', label: '🥬' },
+  fruit: { color: '#9b59b6', icon: '<path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><path d="M12 22v-6"/>', label: '🍎' },
+  dairy: { color: '#ecf0f1', icon: '<path d="M8 2h8l2 3H6l2-3z"/><path d="M6 5v17a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5"/>', label: '🥛' },
+  grain: { color: '#d35400', icon: '<path d="M12 2v20M2 12h20"/><path d="m4.93 4.93 14.14 14.14"/><path d="m19.07 4.93-14.14 14.14"/>', label: '🌾' },
+  condiments: { color: '#7f8c8d', icon: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>', label: '🧂' },
+  frozen: { color: '#00cec9', icon: '<path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="10"/>', label: '🧊' },
+  default: { color: '#95a5a6', icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>', label: '📦' }
+};
+
+function getIngCategory(zh, section) {
+  const s = (section || '').toLowerCase();
+  let cat = 'default';
+  if (s.includes('meat')) cat = 'meat';
+  else if (s.includes('seafood') || zh.includes('虾') || zh.includes('鱼') || zh.includes('蟹')) cat = 'seafood';
+  else if (zh.includes('鸡') || zh.includes('鸭') || zh.includes('鹅')) cat = 'poultry';
+  else if (s.includes('produce') || zh.includes('菜') || zh.includes('葱') || zh.includes('蒜') || zh.includes('姜') || zh.includes('椒')) cat = 'vegetable';
+  else if (zh.includes('果') || zh.includes('香蕉') || zh.includes('苹果')) cat = 'fruit';
+  else if (s.includes('dairy') || zh.includes('奶') || zh.includes('芝士')) cat = 'dairy';
+  else if (zh.includes('米') || zh.includes('面') || zh.includes('粉')) cat = 'grain';
+  else if (s.includes('condiments') || s.includes('sauces') || s.includes('spices')) cat = 'condiments';
+  else if (s.includes('frozen')) cat = 'frozen';
+  return cat;
+}
+
 function clItemHTML(ing, i) {
   const state = ing._state || '';
   const inv = inventory[ing.zh];
@@ -2071,19 +2099,9 @@ function clItemHTML(ing, i) {
 
   const checkIcon = state === 'done' ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : state === 'missing' ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' : '';
 
-  const cachedImg = imgCache[(ing.en || ing.zh) + ' food ingredient_thumb'];
-  const thumbHTML = cachedImg
-    ? `<img class="cl-thumb" src="${cachedImg}" alt="${ing.zh}" onerror="this.style.display='none'">`
-    : `<div class="cl-thumb-placeholder" id="thumb-${idx}" style="color:var(--muted)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22c1.25-1.25 2.83-2 4.5-2 3.5 0 3.5 2 7 2 1.67 0 3.25-.75 4.5-2"/><path d="M6 10.5C6 6.36 9.36 3 13.5 3S21 6.36 21 10.5c0 4-3 8-7.5 9C9 18.5 6 14.5 6 10.5z"/></svg></div>`;
-
-  // Async load thumbnail if not cached
-  if (!cachedImg) {
-    getUnsplashImg(ing.zh + ' food ingredient', 'thumb', true).then(url => {
-      if (!url) return;
-      const ph = document.getElementById('thumb-' + idx);
-      if (ph) ph.outerHTML = `<img class="cl-thumb" src="${url}" alt="${ing.zh}">`;
-    });
-  }
+  const cat = getIngCategory(ing.zh, ing.section);
+  const catInfo = categoryIcons[cat] || categoryIcons.default;
+  const thumbHTML = `<div class="cl-thumb-placeholder" style="color:${catInfo.color};background:${catInfo.color}15;border-color:${catInfo.color}30"><span style="font-size:18px">${catInfo.label}</span></div>`;
 
   const cutTip = ing.cut_tip ? `<div style="font-size:10px;color:var(--blue);margin-top:2px;display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>切法：${ing.cut_tip}</div>` : '';
   
@@ -3763,15 +3781,6 @@ async function getUnsplashImg(query, size = 'small', forceZh = false) {
   } catch(e) { return null; }
 }
 
-// Preload images for a list of ingredients (zh + en terms)
-async function preloadIngImages(ingredients) {
-  await Promise.all(ingredients.map(ing => 
-    getUnsplashImg(ing.zh + ' food ingredient', 'thumb', true)
-  ));
-}
-
-
-
 function openInMaps(name, lat, lng) {
   if (lat && lng) {
     window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
@@ -3890,15 +3899,20 @@ async function openIngDetail(idx) {
   document.getElementById('ing-modal-en').textContent = ing.en;
   document.getElementById('ing-modal-body').innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:13px;margin-top:8px;display:block">正在加载…</span></div>';
 
-  // Load ingredient image via Unsplash API
+  // Use category icon instead of real image
   const imgEl = document.getElementById('ing-modal-img');
   const wrapEl = document.getElementById('ing-modal-img-wrap');
-  wrapEl.style.display = 'block';
-  imgEl.src = '';
-  getUnsplashImg(ing.zh + ' food ingredient', 'regular', true).then(url => {
-    if (url) { imgEl.src = url; }
-    else { wrapEl.style.display = 'none'; }
-  });
+  const cat = getIngCategory(ing.zh, ing.section);
+  const catInfo = categoryIcons[cat] || categoryIcons.default;
+  wrapEl.style.display = 'flex';
+  wrapEl.style.alignItems = 'center';
+  wrapEl.style.justifyContent = 'center';
+  wrapEl.style.background = catInfo.color + '15';
+  imgEl.style.display = 'none';
+  const iconEl = document.createElement('div');
+  iconEl.innerHTML = `<span style="font-size:72px">${catInfo.label}</span>`;
+  wrapEl.innerHTML = '';
+  wrapEl.appendChild(iconEl);
 
   // Get community reviews mentioning this ingredient
   const allReviews = await getReviews();
