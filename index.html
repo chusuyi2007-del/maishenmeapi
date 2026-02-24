@@ -637,6 +637,9 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
             <div class="cl-title" id="cl-dish-name">购物清单</div>
             <button class="btn" style="font-size:11px;padding:4px 8px" onclick="promptSaveRecipe()">保存</button>
           </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+            <label style="font-size:11px;color:var(--muted)"><input type="checkbox" id="inv-mode-toggle" onchange="toggleInvMode()"> 找到就入库</label>
+          </div>
           <div class="cl-progress-wrap">
             <div class="cl-progress-bar"><div class="cl-progress-fill" id="cl-prog-fill"></div></div>
             <div class="cl-progress-label" id="cl-prog-label">0 / 0</div>
@@ -1409,6 +1412,30 @@ function startProg(fid, pid) {
 }
 function ldots() { return '<span class="loading-dots"><span></span><span></span><span></span></span>'; }
 
+function parseExpiry(input) {
+  if (!input) return null;
+  const s = input.trim().toLowerCase();
+  const today = new Date();
+  
+  const daysMatch = s.match(/(\d+)\s*(天|日|days?)/);
+  if (daysMatch) return parseInt(daysMatch[1]);
+  
+  const weekMatch = s.match(/(\d+)\s*(周|星期|weeks?)/);
+  if (weekMatch) return parseInt(weekMatch[1]) * 7;
+  
+  const monthMatch = s.match(/(\d+)\s*(个月|月|months?)/);
+  if (monthMatch) return parseInt(monthMatch[1]) * 30;
+  
+  const dateMatch = s.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (dateMatch) {
+    const expDate = new Date(parseInt(dateMatch[1]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[3]));
+    const diff = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : null;
+  }
+  
+  return null;
+}
+
 // ====== INVENTORY STORAGE ======
 async function loadInventory() {
   try {
@@ -2177,10 +2204,49 @@ function clItemHTML(ing, i) {
 function toggleItem(idx) {
   const ing = shoppingList[idx];
   if (!ing) return;
-  if (!ing._state) ing._state = 'done';
-  else if (ing._state === 'done') ing._state = '';
+  if (!ing._state) {
+    if (document.getElementById('inv-mode-toggle')?.checked) {
+      promptAddToInventory(ing, idx);
+    } else {
+      ing._state = 'done';
+    }
+  } else if (ing._state === 'done') {
+    ing._state = '';
+  }
   saveChecklist();
   renderChecklist();
+}
+
+function toggleInvMode() {
+  localStorage.setItem('inv-mode', document.getElementById('inv-mode-toggle').checked ? 'found' : 'receipt');
+}
+
+function loadInvMode() {
+  const mode = localStorage.getItem('inv-mode');
+  document.getElementById('inv-mode-toggle').checked = mode === 'found';
+}
+
+async function promptAddToInventory(ing, idx) {
+  const expiry = await showPrompt('录入库存', `添加到库存（${ing.zh} / ${ing.en}）`, '保质期（选填，如 3天后、2024-12-01）', '');
+  if (expiry === null) return;
+  
+  ing._state = 'done';
+  let expiryDays = null;
+  if (expiry) {
+    const days = parseExpiry(expiry);
+    if (days !== null) expiryDays = days;
+  }
+  
+  if (inventory[ing.zh]) {
+    inventory[ing.zh].qty += ing.qty;
+    inventory[ing.zh].maxQty = Math.max(inventory[ing.zh].maxQty, inventory[ing.zh].qty);
+    if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
+  } else {
+    inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: ing.qty, unit: ing.unit, maxQty: ing.qty };
+    if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
+  }
+  saveInventory();
+  showToast(`已入库: ${ing.zh}`);
 }
 
 function setItemState(idx, state) {
@@ -2272,11 +2338,77 @@ function showPrompt(title, message, placeholder = '', defaultValue = '') {
 }
 
 function closePromptModal(cancel = false) {
+  stopPromptVoice();
   document.getElementById('prompt-modal').classList.remove('open');
   if (promptResolve) {
     promptResolve(cancel ? null : document.getElementById('prompt-input').value);
     promptResolve = null;
   }
+}
+
+let promptVoiceRec = null;
+function startPromptVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('浏览器不支持语音识别');
+    return;
+  }
+  const input = document.getElementById('prompt-input');
+  const btn = document.getElementById('prompt-mic-btn');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  promptVoiceRec = new SpeechRecognition();
+  promptVoiceRec.lang = 'zh-CN';
+  promptVoiceRec.continuous = false;
+  promptVoiceRec.interimResults = false;
+  promptVoiceRec.onstart = () => { btn.textContent = '🔴'; };
+  promptVoiceRec.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    input.value = input.value ? input.value + ' ' + text : text;
+  };
+  promptVoiceRec.onerror = () => { btn.textContent = '🎤'; showToast('语音识别失败'); };
+  promptVoiceRec.onend = () => { btn.textContent = '🎤'; };
+  promptVoiceRec.start();
+}
+
+function stopPromptVoice() {
+  if (promptVoiceRec) { promptVoiceRec.stop(); promptVoiceRec = null; }
+}
+
+function triggerPromptCamera() {
+  document.getElementById('prompt-camera-input').click();
+}
+
+async function handlePromptCamera(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const input = document.getElementById('prompt-input');
+  input.value = input.value ? input.value + ' 识别中...' : '识别中...';
+  
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const resp = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: [
+            { type: 'text', text: '请识别图片中的文字，只返回保质期相关信息，如"生产日期"、"有效期"、"保质期"等。如果无法识别，请返回"无法识别"' },
+            { type: 'image', source: { media_type: file.type, data: ev.target.result.split(',')[1] } }
+          ]}],
+          system: '你是一个保质期识别助手。只返回识别到的日期信息，不要其他文字。',
+          max_tokens: 100
+        })
+      });
+      const data = await resp.json();
+      const text = data.content?.[0]?.text || '无法识别';
+      input.value = text;
+    } catch(err) {
+      input.value = '';
+      showToast('识别失败');
+    }
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
 }
 
 function getSavedRecipes() {
@@ -4446,6 +4578,7 @@ async function sendExpiryNotifications() {
     await loadLocation();
     await loadCurrentStore();
     await loadChecklist();
+    loadInvMode();
     renderInventory();
     if (savedTab === 'community') renderFeed();
     checkExpiryNotifications();
@@ -4560,7 +4693,12 @@ if ('serviceWorker' in navigator) {
   <div class="modal" style="max-width:340px">
     <h3 id="prompt-title" style="margin-bottom:4px">输入</h3>
     <p id="prompt-message" style="font-size:12px;color:var(--muted);margin:0 0 12px;font-weight:300"></p>
-    <input type="text" id="prompt-input" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onkeydown="if(event.key==='Enter')closePromptModal()">
+    <div style="display:flex;gap:8px">
+      <input type="text" id="prompt-input" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onkeydown="if(event.key==='Enter')closePromptModal()">
+      <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:10px 12px;flex:0 0 auto" title="语音输入">🎤</button>
+      <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:10px 12px;flex:0 0 auto" title="拍照">📷</button>
+      <input type="file" id="prompt-camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePromptCamera(event)">
+    </div>
     <div class="modal-footer" style="margin-top:14px">
       <button class="btn btn-outline" onclick="closePromptModal(true)" style="flex:1">取消</button>
       <button class="btn btn-primary" onclick="closePromptModal()" style="flex:1">确定</button>
