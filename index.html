@@ -1854,7 +1854,8 @@ async function doParseMultipleRecipes(dishes) {
 
     const p = parseJSON(t);
     shoppingList = p.merged_ingredients || [];
-    shoppingList._dish = (p.dishes || dishes).join(' + ') + ' · 购物清单';
+    const uniqueDishes = [...new Set(p.dishes || dishes)];
+    shoppingList._dish = uniqueDishes.join(' + ') + ' · 购物清单';
     saveChecklist();
     renderIngredients();
     checkExpiryOnShop(shoppingList);
@@ -1958,7 +1959,9 @@ Chicken（鸡肉）：breast(胸肉)、thigh(腿肉)、wing(翅)、drumstick(小
 只返回JSON，不要其他文字。`);
     const p = parseJSON(t);
     shoppingList = p.ingredients;
-    shoppingList._dish = (variant ? variant.name + ' · ' : '') + (p.dish || '购物清单');
+    let dishName = p.dish || '购物清单';
+    if (variant) dishName = variant.name + ' · ' + dishName;
+    shoppingList._dish = dishName;
     saveChecklist();
     renderIngredients();
     checkExpiryOnShop(shoppingList);
