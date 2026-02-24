@@ -2067,8 +2067,9 @@ function getIngCategory(zh, section) {
   const s = (section || '').toLowerCase();
   const z = zh || '';
   
-  // 海鲜优先检查
-  if (z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜') || z.includes('贝') || z.includes('螺')) return 'seafood';
+  // 海鲜优先检查（但要排除"螺丝椒"这种带"螺"的蔬菜）
+  if ((z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜')) && !z.includes('椒')) return 'seafood';
+  if ((z.includes('贝') || z.includes('螺')) && !z.includes('椒')) return 'seafood';
   // 肉类
   if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉') || z.includes('腩') || z.includes('排') || z.includes('骨') || z.includes('腱') || z.includes('尾') || s.includes('meat')) return 'meat';
   // 家禽 - 鸡鸭鹅
@@ -2437,7 +2438,7 @@ chicken feet → pork feet → duck feet
       const z = zh.toLowerCase();
       if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉')) return '🥩';
       if (z.includes('鸡') || z.includes('鸭') || z.includes('鹅')) return '🍗';
-      if (z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜')) return '🦐';
+      if ((z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜')) && !z.includes('椒')) return '🦐';
       if (z.includes('菜') || z.includes('葱') || z.includes('蒜') || z.includes('姜') || z.includes('椒')) return '🥬';
       if (z.includes('奶') || z.includes('芝士')) return '🥛';
       if (z.includes('米') || z.includes('面') || z.includes('粉')) return '🌾';
