@@ -614,9 +614,9 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
       <div class="field">
         <textarea id="recipe-input" rows="6" placeholder="可以输入：&#10;• 完整菜谱（红烧肉 需要：五花肉500g...）&#10;• 或单独菜名（番茄炒蛋）"></textarea>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()" style="flex:1"><span id="parse-text">生成购物清单</span></button>
-        <button class="btn" onclick="openSavedRecipes()">常用菜</button>
+      <div class="field" style="display:flex;gap:8px;margin-bottom:10px;align-items:stretch">
+        <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()" style="flex:1;margin:0"><span id="parse-text">生成购物清单</span></button>
+        <button class="btn" onclick="openSavedRecipes()" style="flex:0 0 80px;margin:0">常用菜</button>
       </div>
       <div class="progress" id="parse-prog"><div class="progress-fill" id="parse-fill"></div></div>
     </div>
