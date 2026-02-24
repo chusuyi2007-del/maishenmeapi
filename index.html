@@ -2230,6 +2230,15 @@ function toggleItem(idx) {
   renderChecklist();
 }
 
+function getInvMode() {
+  return localStorage.getItem('inv-mode') || 'receipt';
+}
+
+function setInvMode(mode) {
+  localStorage.setItem('inv-mode', mode);
+  loadInvMode();
+}
+
 function loadInvMode() {
   const mode = getInvMode();
   document.getElementById('inv-mode-receipt').classList.toggle('active', mode === 'receipt');
@@ -2483,11 +2492,15 @@ async function handlePromptCamera(e) {
   if (!file) return;
   
   const input = document.getElementById('prompt-input');
-  input.value = input.value ? input.value + ' 识别中...' : '识别中...';
+  input.value = '识别中...';
   
   const reader = new FileReader();
   reader.onload = async ev => {
     try {
+      if (!PROXY_URL) {
+        input.value = '请先配置后端';
+        return;
+      }
       const resp = await fetch(PROXY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2500,12 +2513,16 @@ async function handlePromptCamera(e) {
           max_tokens: 100
         })
       });
+      if (!resp.ok) {
+        input.value = '错误: ' + resp.status;
+        return;
+      }
       const data = await resp.json();
       const text = data.content?.[0]?.text || '无法识别';
       input.value = text;
     } catch(err) {
       input.value = '';
-      showToast('识别失败');
+      showToast('识别失败: ' + err.message);
     }
   };
   reader.readAsDataURL(file);
