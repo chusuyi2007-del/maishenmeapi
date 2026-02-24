@@ -2160,7 +2160,7 @@ function clItemHTML(ing, i) {
     </div>`;
   } else {
     actions = `<div class="cl-actions" style="opacity:1;display:flex;gap:4px">
-      <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'done')" style="background:var(--green-light);border-color:var(--green);color:var(--green)">✓ 找到了</button>
+      <button class="cl-action-btn" onclick="event.stopPropagation();onFoundClick(${idx})" style="background:var(--green-light);border-color:var(--green);color:var(--green)">✓ 找到了</button>
       <button class="cl-action-btn" onclick="event.stopPropagation();setItemState(${idx},'missing')">没找到</button>
     </div>`;
   }
@@ -2220,15 +2220,26 @@ function toggleItem(idx) {
   if (!ing._state) {
     if (getInvMode() === 'found') {
       promptAddToInventory(ing, idx);
-      return;
     } else {
       ing._state = 'done';
+      saveChecklist();
+      renderChecklist();
     }
   } else if (ing._state === 'done') {
     ing._state = '';
+    saveChecklist();
+    renderChecklist();
   }
-  saveChecklist();
-  renderChecklist();
+}
+
+function onFoundClick(idx) {
+  const ing = shoppingList[idx];
+  if (!ing) return;
+  if (getInvMode() === 'found') {
+    promptAddToInventory(ing, idx);
+  } else {
+    setItemState(idx, 'done');
+  }
 }
 
 function getInvMode() {
@@ -2253,7 +2264,6 @@ function showInvModeHelp() {
 }
 
 async function promptAddToInventory(ing, idx) {
-  alert('promptAddToInventory called for ' + ing.zh);
   const inInv = inventory[ing.zh];
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
   if (inInv) {
@@ -2743,6 +2753,10 @@ chicken breast → chicken thigh → chicken tender
 chicken wings → chicken thigh → chicken drumstick
 chicken feet → pork feet → duck feet
 
+Egg替代（鸡蛋/禽蛋）：
+egg → egg substitute → silken tofu → aquafaba
+duck egg → egg → quail egg
+
 请严格按照上述优先级推荐替代品。如果原食材不在表中，再推荐其他方案。
 
 【输出格式要求】
@@ -2801,7 +2815,8 @@ chicken feet → pork feet → duck feet
       return zh;
     };
     
-    const subItemsHTML = r.substitutes.map((s, i) => {
+    const subItemsHTML = r.substitutes && r.substitutes.length > 0 
+      ? r.substitutes.map((s, i) => {
       const sameCat = s.same_category === true || s.same_category === 'true';
       const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
       const icon = getSubIcon(s.zh);
@@ -2821,7 +2836,7 @@ chicken feet → pork feet → duck feet
     });
     
     result.innerHTML = `<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">原食材</div><div style="font-size:15px;font-weight:500">${r.original}</div></div>` +
-      subItemsHTML.join('') +
+      (r.substitutes && r.substitutes.length > 0 ? subItemsHTML.join('') : '<div style="text-align:center;padding:20px;color:var(--muted)">没有找到合适的替代品</div>') +
       (r.tip ? `<div style="font-size:11px;color:var(--muted);margin-top:7px;font-style:italic">${r.tip}</div>` : '');
   } catch(e) { stop(); result.innerHTML = '<p style="color:var(--muted);text-align:center;font-size:13px;padding:14px">查找失败，请重试</p>'; }
   btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新查找</span>';
