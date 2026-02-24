@@ -639,9 +639,9 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
             <button class="btn" style="font-size:11px;padding:4px 8px" onclick="promptSaveRecipe()">保存</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-            <div id="inv-mode-btns" style="display:flex;gap:4px;background:var(--surface2);padding:3px;border-radius:8px">
-              <button class="inv-mode-btn" id="inv-mode-receipt" onclick="setInvMode('receipt')" style="padding:4px 8px;font-size:11px;border:none;background:transparent;border-radius:6px;cursor:pointer">一起入库</button>
-              <button class="inv-mode-btn" id="inv-mode-found" onclick="setInvMode('found')" style="padding:4px 8px;font-size:11px;border:none;background:transparent;border-radius:6px;cursor:pointer">找到就入库</button>
+            <div id="inv-mode-btns" style="display:flex;gap:2px;background:var(--surface2);padding:2px;border-radius:8px">
+              <button class="inv-mode-btn active" id="inv-mode-receipt" onclick="setInvMode('receipt')" style="padding:6px 12px;font-size:11px;border:none;background:transparent;border-radius:6px;cursor:pointer;white-space:nowrap">一起入库</button>
+              <button class="inv-mode-btn" id="inv-mode-found" onclick="setInvMode('found')" style="padding:6px 12px;font-size:11px;border:none;background:transparent;border-radius:6px;cursor:pointer;white-space:nowrap">找到就入库</button>
             </div>
             <span onclick="showInvModeHelp()" style="cursor:pointer;font-size:14px" title="说明">ℹ️</span>
           </div>
@@ -659,7 +659,7 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
 
         <!-- Checked items -->
         <div id="cl-done-section" style="display:none;margin-top:12px">
-          <div class="cl-section-label done">已买到</div>
+          <div class="cl-section-label done">已买到 <button id="add-done-to-inv-btn" onclick="addDoneToInventory()" style="margin-left:8px;padding:2px 8px;font-size:10px;background:var(--green);color:#fff;border:none;border-radius:10px;cursor:pointer">加入库存</button></div>
           <div id="cl-done-list" class="cl-list"></div>
         </div>
 
@@ -2038,6 +2038,7 @@ function renderIngredients() {
 }
 
 function renderChecklist() {
+  loadInvMode();
   const total = shoppingList.length;
   const checked = shoppingList.filter(i => i._state === 'done').length;
   const missing = shoppingList.filter(i => i._state === 'missing').length;
@@ -2138,8 +2139,14 @@ function getIngCategory(zh, section) {
 function clItemHTML(ing, i) {
   const state = ing._state || '';
   const inv = inventory[ing.zh];
+  const inStock = inv && inv.qty > 0;
+  const hasInventory = !!inv;
   const stockDotClass = !inv || inv.qty <= 0 ? 'dot-none' : getStockStatus(inv) === 'low' ? 'dot-low' : 'dot-ok';
   const idx = shoppingList.indexOf(ing);
+  
+  // Yellow highlight for items already in inventory
+  const invTip = inStock && !state ? `<div style="font-size:10px;color:#b86000;margin-top:2px">🟡 库存: ${inv.qty}${inv.unit} · ${inv.expiryDays ? inv.expiryDays + '天' : '未知'}</div>` : '';
+  const itemStyle = inStock && !state ? 'background:#fff8e1;border-color:var(--yellow-light)' : '';
 
   let actions = '';
   if (state === 'missing') {
@@ -2192,13 +2199,14 @@ function clItemHTML(ing, i) {
     ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">来自：${[...new Set(ing.from_dishes)].join('、')}</div>` 
     : '';
   
-  return `<div class="cl-item ${state}" id="cl-item-${idx}" onclick="toggleItem(${idx})">
+  return `<div class="cl-item ${state}" id="cl-item-${idx}" onclick="toggleItem(${idx})" style="${itemStyle}">
     <div class="cl-checkbox">${checkIcon}</div>
     ${thumbHTML}
     <div class="cl-info">
       <div class="cl-zh">${ing.zh}</div>
       <div class="cl-en">${ing.en} · ${ing.section}</div>
       ${cutTip}
+      ${invTip}
       ${fromDishes}
     </div>
     ${actions}
@@ -2226,30 +2234,53 @@ function loadInvMode() {
   const mode = getInvMode();
   document.getElementById('inv-mode-receipt').classList.toggle('active', mode === 'receipt');
   document.getElementById('inv-mode-found').classList.toggle('active', mode === 'found');
+  const addBtn = document.getElementById('add-done-to-inv-btn');
+  if (addBtn) addBtn.style.display = mode === 'receipt' ? 'inline' : 'none';
 }
 
 function showInvModeHelp() {
-  showAlert('入库模式说明', '• <b>一起入库</b>：买完所有东西后，用小票统一录入库存<br>• <b>找到就入库</b>：每找到一个食材就立即录入库存，可额外输入保质期', 'info');
-}
-
-function toggleInvMode() {
-  localStorage.setItem('inv-mode', document.getElementById('inv-mode-toggle').checked ? 'found' : 'receipt');
-}
-
-function loadInvMode() {
-  const mode = localStorage.getItem('inv-mode');
-  document.getElementById('inv-mode-toggle').checked = mode === 'found';
+  showAlert('入库模式说明', '• <b>一起入库</b>：买完所有东西后，点击"加入库存"批量录入<br>• <b>找到就入库</b>：每找到一个食材就立即录入，可额外输入保质期', 'info');
 }
 
 async function promptAddToInventory(ing, idx) {
-  const expiry = await showPrompt('录入库存', `添加到库存（${ing.zh} / ${ing.en}）`, '保质期（选填，如 3天后、2024-12-01）', '');
-  if (expiry === null) return;
+  const inInv = inventory[ing.zh];
+  let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
+  if (inInv) {
+    msg += `<br><span style="color:var(--yellow);font-size:11px">库存已有: ${inInv.qty}${inInv.unit}，保质期: ${inInv.expiryDays ? inInv.expiryDays + '天' : '未知'}</span>`;
+  }
+  
+  const input = document.getElementById('prompt-input');
+  const msgEl = document.getElementById('prompt-message');
+  const titleEl = document.getElementById('prompt-title');
+  const footer = document.getElementById('prompt-modal').querySelector('.modal-footer');
+  
+  titleEl.textContent = '录入库存';
+  msgEl.innerHTML = msg;
+  input.placeholder = '保质期（选填，如 3天后）';
+  input.value = '';
+  
+  footer.innerHTML = `
+    <button class="btn btn-outline" onclick="cancelAddToInventory(${idx})" style="flex:1">不录入</button>
+    <button class="btn btn-primary" onclick="confirmAddToInventory(${idx})" style="flex:1">入库</button>
+  `;
+  
+  document.getElementById('prompt-modal').classList.add('open');
+  setTimeout(() => input.focus(), 100);
+  
+  return new Promise(resolve => { promptResolve = resolve; });
+}
+
+async function confirmAddToInventory(idx) {
+  const ing = shoppingList[idx];
+  if (!ing) { closePromptModal(true); return; }
+  
+  const input = document.getElementById('prompt-input');
+  const expiry = input.value;
   
   ing._state = 'done';
   let expiryDays = null;
   if (expiry) {
-    const days = parseExpiry(expiry);
-    if (days !== null) expiryDays = days;
+    expiryDays = parseExpiry(expiry);
   }
   
   if (inventory[ing.zh]) {
@@ -2260,8 +2291,50 @@ async function promptAddToInventory(ing, idx) {
     inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: ing.qty, unit: ing.unit, maxQty: ing.qty };
     if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
   }
+  
+  closePromptModal();
   saveInventory();
+  saveChecklist();
+  renderChecklist();
   showToast(`已入库: ${ing.zh}`);
+}
+
+function cancelAddToInventory(idx) {
+  const ing = shoppingList[idx];
+  if (ing) {
+    ing._state = 'done';
+    saveChecklist();
+    renderChecklist();
+  }
+  closePromptModal();
+}
+
+async function addDoneToInventory() {
+  const doneItems = shoppingList.filter(i => i._state === 'done');
+  if (!doneItems.length) {
+    showToast('没有已买到的食材');
+    return;
+  }
+  
+  const expiry = await showPrompt('批量入库', `将 ${doneItems.length} 种食材加入库存`, '保质期（选填，如 3天后）', '');
+  
+  let expiryDays = null;
+  if (expiry) {
+    expiryDays = parseExpiry(expiry);
+  }
+  
+  doneItems.forEach(ing => {
+    if (inventory[ing.zh]) {
+      inventory[ing.zh].qty += ing.qty;
+      inventory[ing.zh].maxQty = Math.max(inventory[ing.zh].maxQty, inventory[ing.zh].qty);
+      if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
+    } else {
+      inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: ing.qty, unit: ing.unit, maxQty: ing.qty };
+      if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
+    }
+  });
+  saveInventory();
+  showToast(`已入库 ${doneItems.length} 种食材`);
 }
 
 function setItemState(idx, state) {
@@ -2355,6 +2428,19 @@ function showPrompt(title, message, placeholder = '', defaultValue = '') {
 function closePromptModal(cancel = false) {
   stopPromptVoice();
   document.getElementById('prompt-modal').classList.remove('open');
+  
+  // Restore original footer
+  const footer = document.getElementById('prompt-modal').querySelector('.modal-footer');
+  footer.innerHTML = `
+    <button class="btn btn-outline" onclick="closePromptModal(true)" style="flex:1">取消</button>
+    <button class="btn btn-primary" onclick="closePromptModal()" style="flex:1">确定</button>
+  `;
+  
+  // Restore input placeholder
+  document.getElementById('prompt-message').innerHTML = '';
+  document.getElementById('prompt-title').textContent = '输入';
+  document.getElementById('prompt-input').placeholder = '';
+  
   if (promptResolve) {
     promptResolve(cancel ? null : document.getElementById('prompt-input').value);
     promptResolve = null;
