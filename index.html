@@ -353,7 +353,7 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
 .cl-header{margin-bottom:12px}
 .cl-title{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bottom:8px;letter-spacing:-.3px}
 .cl-progress-wrap{display:flex;align-items:center;gap:8px}
-.inv-mode-btn.active{background:var(--green)!important;color:#000!important}
+.inv-mode-btn.active{background:#bbf7d0!important;color:#166534!important}
 .cl-progress-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
 .cl-progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s ease}
 .cl-progress-label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap}
@@ -2253,6 +2253,7 @@ function showInvModeHelp() {
 }
 
 async function promptAddToInventory(ing, idx) {
+  alert('promptAddToInventory called for ' + ing.zh);
   const inInv = inventory[ing.zh];
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
   if (inInv) {
