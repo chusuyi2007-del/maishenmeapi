@@ -616,8 +616,7 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()" style="flex:1"><span id="parse-text">生成购物清单</span></button>
-        <button class="btn" onclick="openSavedRecipes()" style="flex:0 0 auto">📖 常用菜</button>
-        <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()" style="flex:1"><span id="parse-text">生成购物清单</span></button>
+        <button class="btn" onclick="openSavedRecipes()">常用菜</button>
       </div>
       <div class="progress" id="parse-prog"><div class="progress-fill" id="parse-fill"></div></div>
     </div>
@@ -636,7 +635,7 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
         <div class="cl-header">
           <div style="display:flex;align-items:center;gap:8px;flex:1">
             <div class="cl-title" id="cl-dish-name">购物清单</div>
-            <button class="btn" style="font-size:11px;padding:2px 6px" onclick="promptSaveRecipe()">💾 保存</button>
+            <button class="btn" style="font-size:11px;padding:4px 8px" onclick="promptSaveRecipe()">保存</button>
           </div>
           <div class="cl-progress-wrap">
             <div class="cl-progress-bar"><div class="cl-progress-fill" id="cl-prog-fill"></div></div>
