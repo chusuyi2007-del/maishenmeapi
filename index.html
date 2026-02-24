@@ -2434,15 +2434,50 @@ chicken feet → pork feet → duck feet
       return '📦';
     };
     
+    const zhCount = {};
+    r.substitutes.forEach(s => { zhCount[s.zh] = (zhCount[s.zh] || 0) + 1; });
+    
+    const zhEnMap = {};
+    r.substitutes.forEach(s => {
+      if (!zhEnMap[s.zh]) zhEnMap[s.zh] = [];
+      zhEnMap[s.zh].push(s.en);
+    });
+    
+    const getZhDetail = (zh, en) => {
+      if (!en) return zh;
+      const enLower = en.toLowerCase();
+      const count = zhCount[zh] || 0;
+      if (count <= 1) return zh;
+      
+      const detailMap = {
+        '牛腩': { 'brisket': '坑腩', 'chuck': '肩胛腩', 'short ribs': '小排腩' },
+        '牛肉': { 'brisket': '牛腩', 'chuck': '牛肩', 'rib': '牛肋', 'sirloin': '西冷', 'tenderloin': '里脊', 'flank': '牛腹', 'round': '牛后' },
+        '猪肉': { 'belly': '五花', 'shoulder': '梅花', 'loin': '里脊', 'ribs': '排骨', 'hock': '蹄髈', 'feet': '猪蹄' },
+        '五花肉': { 'belly': '五花', 'shoulder': '梅五花' },
+        '鸡腿': { 'thigh': '鸡腿', 'drumstick': '小腿' },
+        '鸡肉': { 'thigh': '腿肉', 'breast': '胸肉', 'wings': '翅膀' }
+      };
+      
+      for (const [key, detail] of Object.entries(detailMap)) {
+        if (zh.includes(key)) {
+          for (const [enKey, zhDetail] of Object.entries(detail)) {
+            if (enLower.includes(enKey)) return zh + '(' + zhDetail + ')';
+          }
+        }
+      }
+      return zh;
+    };
+    
     const subItemsHTML = r.substitutes.map((s, i) => {
       const sameCat = s.same_category === true || s.same_category === 'true';
       const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
       const icon = getSubIcon(s.zh);
+      const zhDetail = getZhDetail(s.zh, s.en);
       return `<div class="sub-result-item">
         <div class="sub-rank-row"><div class="sub-rank">${i+1}</div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:24px">${icon}</span>
-          <div><div class="sub-name">${s.zh}${catTag}</div><div class="sub-en">(${s.en ? s.en.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ''})</div></div>
+          <div><div class="sub-name">${zhDetail}${catTag}</div><div class="sub-en">(${s.en ? s.en.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ''})</div></div>
         </div>
         <div class="sub-avail" style="display:flex;align-items:center;gap:3px;color:${ac[s.availability]||'var(--muted)'}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> ${s.availability}</div></div>
         <div class="sub-where" style="display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> ${s.where}</div>
