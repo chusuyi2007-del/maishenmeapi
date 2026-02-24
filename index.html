@@ -353,6 +353,7 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
 .cl-header{margin-bottom:12px}
 .cl-title{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bottom:8px;letter-spacing:-.3px}
 .cl-progress-wrap{display:flex;align-items:center;gap:8px}
+.inv-mode-btn.active{background:var(--primary)!important;color:#fff}
 .cl-progress-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
 .cl-progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s ease}
 .cl-progress-label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap}
@@ -638,7 +639,11 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
             <button class="btn" style="font-size:11px;padding:4px 8px" onclick="promptSaveRecipe()">保存</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-            <label style="font-size:11px;color:var(--muted)"><input type="checkbox" id="inv-mode-toggle" onchange="toggleInvMode()"> 找到就入库</label>
+            <div id="inv-mode-btns" style="display:flex;gap:4px;background:var(--surface2);padding:3px;border-radius:8px">
+              <button class="inv-mode-btn" id="inv-mode-receipt" onclick="setInvMode('receipt')" style="padding:4px 8px;font-size:11px;border:none;background:transparent;border-radius:6px;cursor:pointer">一起入库</button>
+              <button class="inv-mode-btn" id="inv-mode-found" onclick="setInvMode('found')" style="padding:4px 8px;font-size:11px;border:none;background:transparent;border-radius:6px;cursor:pointer">找到就入库</button>
+            </div>
+            <span onclick="showInvModeHelp()" style="cursor:pointer;font-size:14px" title="说明">ℹ️</span>
           </div>
           <div class="cl-progress-wrap">
             <div class="cl-progress-bar"><div class="cl-progress-fill" id="cl-prog-fill"></div></div>
@@ -2205,7 +2210,7 @@ function toggleItem(idx) {
   const ing = shoppingList[idx];
   if (!ing) return;
   if (!ing._state) {
-    if (document.getElementById('inv-mode-toggle')?.checked) {
+    if (getInvMode() === 'found') {
       promptAddToInventory(ing, idx);
     } else {
       ing._state = 'done';
@@ -2215,6 +2220,16 @@ function toggleItem(idx) {
   }
   saveChecklist();
   renderChecklist();
+}
+
+function loadInvMode() {
+  const mode = getInvMode();
+  document.getElementById('inv-mode-receipt').classList.toggle('active', mode === 'receipt');
+  document.getElementById('inv-mode-found').classList.toggle('active', mode === 'found');
+}
+
+function showInvModeHelp() {
+  showAlert('入库模式说明', '• <b>一起入库</b>：买完所有东西后，用小票统一录入库存<br>• <b>找到就入库</b>：每找到一个食材就立即录入库存，可额外输入保质期', 'info');
 }
 
 function toggleInvMode() {
@@ -4693,10 +4708,10 @@ if ('serviceWorker' in navigator) {
   <div class="modal" style="max-width:340px">
     <h3 id="prompt-title" style="margin-bottom:4px">输入</h3>
     <p id="prompt-message" style="font-size:12px;color:var(--muted);margin:0 0 12px;font-weight:300"></p>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:6px;align-items:center">
       <input type="text" id="prompt-input" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onkeydown="if(event.key==='Enter')closePromptModal()">
-      <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:10px 12px;flex:0 0 auto" title="语音输入">🎤</button>
-      <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:10px 12px;flex:0 0 auto" title="拍照">📷</button>
+      <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="语音输入">🎤</button>
+      <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="拍照">📷</button>
       <input type="file" id="prompt-camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePromptCamera(event)">
     </div>
     <div class="modal-footer" style="margin-top:14px">
