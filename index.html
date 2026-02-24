@@ -612,9 +612,11 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
     <div class="card">
       <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 今天做什么</div>
       <div class="field">
-        <textarea id="recipe-input" rows="6" placeholder="例如：红烧肉&#10;需要：五花肉、老抽、生抽、冰糖、八角&#10;&#10;或直接写食材清单也可以～"></textarea>
+        <textarea id="recipe-input" rows="6" placeholder="例如：红烧肉&#10;需要：五花肉、老抽、生抽、冰糖、八角&#10;&#10;或粘贴小红书链接也可以～"></textarea>
       </div>
-      <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()"><span id="parse-text">生成购物清单</span></button>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()" style="flex:1"><span id="parse-text">生成购物清单</span></button>
+      </div>
       <div class="progress" id="parse-prog"><div class="progress-fill" id="parse-fill"></div></div>
     </div>
 
@@ -1707,16 +1709,42 @@ function addReceiptToInventory(items) {
 
 // ====== RECIPE WITH STOCK CHECK ======
 async function parseRecipe() {
-  const recipe = document.getElementById('recipe-input').value.trim(); if (!recipe) return;
+  let recipe = document.getElementById('recipe-input').value.trim(); if (!recipe) return;
   const btn = document.getElementById('parse-btn'), txt = document.getElementById('parse-text');
-  btn.disabled = true; txt.innerHTML = ldots() + ' 验证输入';
+  btn.disabled = true; 
   const stop = startProg('parse-fill', 'parse-prog');
+
+  // Check if input is a URL (Xiaohongshu)
+  const isUrl = recipe.match(/https?:\/\/[^\s]+/);
+  if (isUrl && (recipe.includes('xiaohongshu.com') || recipe.includes('xhsc.cn'))) {
+    txt.innerHTML = ldots() + ' 解析小红书...';
+    try {
+      const url = isUrl[0];
+      const res = await fetch('/api/xiaohongshu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (data.content) {
+        recipe = data.content + '\n' + recipe.replace(url, '').trim();
+      }
+    } catch(e) {
+      stop(); btn.disabled = false; txt.textContent = '重新解析';
+      await showAlert('解析失败', '无法读取小红书链接内容，请直接粘贴菜谱文字', 'warning');
+      return;
+    }
+  }
+
+  txt.innerHTML = ldots() + ' 验证输入';
+  const stop2 = stop;
 
   try {
     // Validate input first
     const validation = await validateDishInput(recipe);
     if (!validation.valid) {
-      stop(); btn.disabled = false; txt.textContent = '重新解析';
+      stop2(); btn.disabled = false; txt.textContent = '重新解析';
       await showAlert('输入无效', validation.reason || '请输入有效的菜名或食材需求', 'warning');
       return;
     }
@@ -1886,6 +1914,8 @@ async function doParseRecipe(recipe, variant) {
       `你是专门帮助中国留学生在美国超市购物的助手。${locCtx}${variantCtx}
 
 任务：解析菜谱，精确提取食材清单。
+
+【一致性要求】对于同一种菜谱，每次解析结果必须保持一致。请严格按照下面的对照表选择食材，不要随意替换。
 
 【重要】食材名称必须精确，绝对不能混淆相似食材：
 - 牛鞭(bull penis/beef pizzle) ≠ 牛尾(oxtail) ≠ 牛腩(beef brisket)
@@ -2118,12 +2148,13 @@ function clItemHTML(ing, i) {
   const z = (ing.zh || '');
   const s = (ing.section || '').toLowerCase();
   let cat = 'default';
-  // 肉类 - 牛羊猪肉
-  if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉') || z.includes('腩') || z.includes('排') || z.includes('骨') || z.includes('腱') || z.includes('尾') || s.includes('meat')) cat = 'meat';
-  // 家禽 - 鸡鸭鹅
+  // 海鲜优先（排除螺丝椒）
+  if ((z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜')) && !z.includes('椒')) cat = 'seafood';
+  else if ((z.includes('贝') || z.includes('螺')) && !z.includes('椒')) cat = 'seafood';
+  // 肉类
+  else if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉') || z.includes('腩') || z.includes('排') || z.includes('骨') || z.includes('腱') || z.includes('尾') || s.includes('meat')) cat = 'meat';
+  // 家禽
   else if (z.includes('鸡') || z.includes('鸭') || z.includes('鹅') || z.includes('翅') || z.includes('腿') || z.includes('胸')) cat = 'poultry';
-  // 海鲜
-  else if (z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜') || z.includes('贝') || z.includes('螺')) cat = 'seafood';
   // 蔬菜
   else if (z.includes('葱') || z.includes('蒜') || z.includes('姜') || z.includes('椒') || z.includes('菜') || z.includes('萝') || z.includes('瓜') || z.includes('茄') || z.includes('土') || z.includes('豆') || z.includes('菇') || z.includes('芹') || z.includes('黄') || z.includes('白菜') || z.includes('菠菜') || z.includes('西红') || z.includes('黄瓜') || z.includes('洋葱') || z.includes('木耳') || s.includes('produce')) cat = 'vegetable';
   // 水果
