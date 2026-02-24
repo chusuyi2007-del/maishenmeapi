@@ -612,8 +612,11 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
     <div class="card">
       <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 今天做什么</div>
       <div class="field">
-        <textarea id="recipe-input" rows="8" placeholder="粘贴完整菜谱文字&#10;例如：&#10;红烧肉&#10;需要：五花肉500g、老抽2勺、生抽1勺、冰糖30g、八角2个&#10;步骤：1.五花肉切块..."></textarea>
+        <textarea id="recipe-input" rows="6" placeholder="可以输入：&#10;• 完整菜谱（红烧肉 需要：五花肉500g...）&#10;• 或单独菜名（番茄炒蛋）"></textarea>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()" style="flex:1"><span id="parse-text">生成购物清单</span></button>
+        <button class="btn" onclick="openSavedRecipes()" style="flex:0 0 auto">📖 常用菜</button>
         <button class="btn btn-primary" id="parse-btn" onclick="parseRecipe()" style="flex:1"><span id="parse-text">生成购物清单</span></button>
       </div>
       <div class="progress" id="parse-prog"><div class="progress-fill" id="parse-fill"></div></div>
@@ -631,7 +634,10 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
       <div id="checklist-container" style="display:none">
         <!-- Progress bar -->
         <div class="cl-header">
-          <div class="cl-title" id="cl-dish-name">购物清单</div>
+          <div style="display:flex;align-items:center;gap:8px;flex:1">
+            <div class="cl-title" id="cl-dish-name">购物清单</div>
+            <button class="btn" style="font-size:11px;padding:2px 6px" onclick="promptSaveRecipe()">💾 保存</button>
+          </div>
           <div class="cl-progress-wrap">
             <div class="cl-progress-bar"><div class="cl-progress-fill" id="cl-prog-fill"></div></div>
             <div class="cl-progress-label" id="cl-prog-label">0 / 0</div>
@@ -1727,6 +1733,7 @@ async function parseRecipe() {
     }
 
     txt.innerHTML = ldots() + ' 识别菜名';
+    setCurrentRecipeContent(recipe);
     
     // Step 0: check if multiple dishes
     const multiCheckT = await callAI(
@@ -2243,7 +2250,7 @@ function showAlert(title, message, icon = 'info', showCancel = false) {
   };
   document.getElementById('alert-icon').innerHTML = icons[icon] || icons.info;
   document.getElementById('alert-title').textContent = title;
-  document.getElementById('alert-message').textContent = message;
+  document.getElementById('alert-message').innerHTML = message;
   document.getElementById('alert-modal').classList.add('open');
   const cancelBtn = document.getElementById('alert-cancel-btn');
   if (cancelBtn) cancelBtn.style.display = showCancel ? 'block' : 'none';
@@ -2270,6 +2277,61 @@ function closePromptModal(cancel = false) {
   if (promptResolve) {
     promptResolve(cancel ? null : document.getElementById('prompt-input').value);
     promptResolve = null;
+  }
+}
+
+function getSavedRecipes() {
+  try { return JSON.parse(localStorage.getItem('saved-recipes') || '[]'); }
+  catch { return []; }
+}
+
+function saveRecipe(name, content) {
+  const recipes = getSavedRecipes();
+  const existing = recipes.findIndex(r => r.name === name);
+  if (existing >= 0) recipes[existing] = { name, content, updated: Date.now() };
+  else recipes.push({ name, content, created: Date.now() });
+  localStorage.setItem('saved-recipes', JSON.stringify(recipes));
+}
+
+function deleteRecipe(name) {
+  const recipes = getSavedRecipes().filter(r => r.name !== name);
+  localStorage.setItem('saved-recipes', JSON.stringify(recipes));
+}
+
+async function openSavedRecipes() {
+  const recipes = getSavedRecipes();
+  if (!recipes.length) {
+    await showAlert('暂无保存', '还没有保存任何常用菜谱', 'info');
+    return;
+  }
+  const list = recipes.map(r => `<div class="cl-item" onclick="loadRecipe('${r.name}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border)">
+    <span>${r.name}</span>
+    <button class="btn" style="padding:4px 8px;font-size:12px" onclick="event.stopPropagation();deleteRecipe('${r.name}');openSavedRecipes()">删除</button>
+  </div>`).join('');
+  document.getElementById('alert-title').textContent = '常用菜谱';
+  document.getElementById('alert-message').innerHTML = list;
+  document.getElementById('alert-modal').classList.add('open');
+}
+
+function loadRecipe(name) {
+  const recipes = getSavedRecipes();
+  const recipe = recipes.find(r => r.name === name);
+  if (recipe) {
+    document.getElementById('recipe-input').value = recipe.content;
+    closeAlertModal();
+  }
+}
+
+let _currentRecipeContent = '';
+function setCurrentRecipeContent(content) {
+  _currentRecipeContent = content;
+}
+
+async function promptSaveRecipe() {
+  const name = await showPrompt('保存菜谱', '给这道菜起个名字', '菜名', document.getElementById('cl-dish-name').textContent);
+  if (name) {
+    saveRecipe(name, _currentRecipeContent);
+    await showAlert('已保存', `"${name}" 已添加到常用菜谱`, 'success');
   }
 }
 
