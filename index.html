@@ -2067,15 +2067,23 @@ function getIngCategory(zh, section) {
   const s = (section || '').toLowerCase();
   const z = zh || '';
   
-  // 优先检查中文关键词
-  if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉') || s.includes('meat')) return 'meat';
+  // 海鲜优先检查
+  if (z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜') || z.includes('贝') || z.includes('螺')) return 'seafood';
+  // 肉类
+  if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉') || z.includes('腩') || z.includes('排') || z.includes('骨') || z.includes('腱') || z.includes('尾') || s.includes('meat')) return 'meat';
+  // 家禽 - 鸡鸭鹅
   if (z.includes('鸡') || z.includes('鸭') || z.includes('鹅')) return 'poultry';
-  if (z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜')) return 'seafood';
-  if (z.includes('葱') || z.includes('蒜') || z.includes('姜') || z.includes('椒') || z.includes('菜') || z.includes('萝') || z.includes('瓜') || z.includes('茄') || z.includes('土') || z.includes('豆') || z.includes('菇') || z.includes('芹') || z.includes('黄') || s.includes('produce')) return 'vegetable';
-  if (z.includes('果') || z.includes('蕉') || z.includes('苹果') || z.includes('橙') || z.includes('葡')) return 'fruit';
-  if (z.includes('奶') || z.includes('芝士') || z.includes('黄油') || z.includes('cream')) return 'dairy';
-  if (z.includes('米') || z.includes('面') || z.includes('粉') || z.includes('饭') || z.includes('粥') || z.includes('包') || z.includes('饼')) return 'grain';
-  if (z.includes('酱') || z.includes('油') || z.includes('盐') || z.includes('糖') || z.includes('醋') || z.includes('酱油') || z.includes('耗油') || z.includes('料酒') || z.includes('味') || z.includes('鸡精') || z.includes('淀粉') || z.includes('调料') || s.includes('condiments') || s.includes('sauces') || s.includes('spices')) return 'condiments';
+  // 蔬菜 - 包含辣椒
+  if (z.includes('葱') || z.includes('蒜') || z.includes('姜') || z.includes('椒') || z.includes('菜') || z.includes('萝') || z.includes('瓜') || z.includes('茄') || z.includes('土') || z.includes('豆') || z.includes('菇') || z.includes('芹') || z.includes('黄') || z.includes('白菜') || z.includes('菠菜') || z.includes('西红') || z.includes('黄瓜') || z.includes('洋葱') || z.includes('木耳') || s.includes('produce')) return 'vegetable';
+  // 水果
+  if (z.includes('果') || z.includes('蕉') || z.includes('苹果') || z.includes('橙') || z.includes('葡') || z.includes('柠檬') || z.includes('柚')) return 'fruit';
+  // 奶制品
+  if (z.includes('奶') || z.includes('芝士') || z.includes('黄油') || z.includes('奶油') || z.includes('奶酪') || s.includes('dairy')) return 'dairy';
+  // 主食
+  if (z.includes('米') || z.includes('面') || z.includes('粉') || z.includes('饭') || z.includes('粥') || z.includes('包') || z.includes('饼') || z.includes('面条') || z.includes('馒头')) return 'grain';
+  // 调味品
+  if (z.includes('酱') || z.includes('油') || z.includes('盐') || z.includes('糖') || z.includes('醋') || z.includes('酱油') || z.includes('料酒') || z.includes('味') || z.includes('调料') || z.includes('蚝油') || z.includes('番茄酱') || z.includes('沙拉酱') || s.includes('condiments') || s.includes('sauces') || s.includes('spices')) return 'condiments';
+  // 冷冻
   if (z.includes('冻') || s.includes('frozen')) return 'frozen';
   
   return 'default';
@@ -2429,11 +2437,11 @@ chicken feet → pork feet → duck feet
       const z = zh.toLowerCase();
       if (z.includes('牛') || z.includes('羊') || z.includes('猪') || z.includes('肉')) return '🥩';
       if (z.includes('鸡') || z.includes('鸭') || z.includes('鹅')) return '🍗';
-      if (z.includes('虾') || z.includes('鱼') || z.includes('蟹')) return '🦐';
-      if (z.includes('菜') || z.includes('葱') || z.includes('蒜') || z.includes('姜')) return '🥬';
+      if (z.includes('虾') || z.includes('鱼') || z.includes('蟹') || z.includes('海鲜')) return '🦐';
+      if (z.includes('菜') || z.includes('葱') || z.includes('蒜') || z.includes('姜') || z.includes('椒')) return '🥬';
       if (z.includes('奶') || z.includes('芝士')) return '🥛';
       if (z.includes('米') || z.includes('面') || z.includes('粉')) return '🌾';
-      if (z.includes('酱') || z.includes('油') || z.includes('盐')) return '🧂';
+      if (z.includes('酱') || z.includes('油') || z.includes('盐') || z.includes('糖') || z.includes('醋')) return '🧂';
       return '📦';
     };
     
