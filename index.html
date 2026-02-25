@@ -2401,8 +2401,34 @@ async function confirmAddToInventory(idx) {
   const qtyInput = document.getElementById('inv-qty-input');
   const unitSelect = document.getElementById('inv-unit-select');
   const expiry = input.value;
-  const newQty = parseFloat(qtyInput?.value) || ing.qty || 1;
+  let newQty = parseFloat(qtyInput?.value) || ing.qty || 1;
   const selectedUnit = unitSelect?.value || ing.unit || '个';
+  
+  const maxQtyByUnit = {
+    '个': { '鸡蛋': 20, '鸭蛋': 20, '鹌鹑蛋': 30, '土豆': 20, '番茄': 20, '苹果': 20, '橙子': 15, '香蕉': 15, '大蒜': 15, '鸡腿': 15, '鸡翅': 15, '猪蹄': 10 },
+    '瓶': { '生抽': 10, '老抽': 10, '酱油': 10, '蚝油': 10, '料酒': 10, '醋': 10, '可乐': 10, '雪碧': 10, '果汁': 10, '矿泉水': 10, '啤酒': 15, '红酒': 10, '番茄酱': 10, '沙拉酱': 10, '蜂蜜': 10 },
+    '袋': { '面粉': 10, '大米': 10, '糖': 10, '盐': 10, '冰糖': 10, '红糖': 10, '白糖': 10, '味精': 10, '鸡精': 10, '八角': 10, '花椒': 10, '桂皮': 10, '香叶': 10, '干辣椒': 10, '五香粉': 10, '淀粉': 10, '生粉': 10, '面包屑': 10, '面条': 10, '方便面': 10, '腐竹': 10, '木耳': 10, '香菇': 10, '蘑菇': 10, '菠菜': 10 },
+    'lb': { '牛肉': 10, '猪肉': 10, '羊肉': 10, '五花肉': 10, '牛腩': 10, '鸡胸': 10, '虾': 5, '鱼': 5, '三文鱼': 5, '金枪鱼': 5, '鳕鱼': 5, '虾仁': 5, '土豆': 10, '番茄': 10, '黄瓜': 10, '胡萝卜': 10, '洋葱': 10, '白菜': 10, '西兰花': 10, '菠菜': 10, '芹菜': 10, '苹果': 10, '香蕉': 10, '橙子': 10, '葡萄': 10 },
+    'oz': { '芝士': 5, '黄油': 5, '奶油': 5 },
+    'dozen': { '鸡蛋': 5 },
+    'gallon': { '牛奶': 5 },
+    '把': { '葱': 20, '芹菜': 15, '菠菜': 15, '香菜': 10 },
+    '根': { '黄瓜': 15, '胡萝卜': 15, '葱': 20, '芹菜': 15 },
+    '棵': { '白菜': 10, '西兰花': 10, '生菜': 10, '娃娃菜': 10 },
+    '罐': { '可乐': 15, '雪碧': 15, '果汁': 15, '啤酒': 20 }
+  };
+  
+  let maxQty = 50;
+  for (const [unit, limits] of Object.entries(maxQtyByUnit)) {
+    if (selectedUnit === unit && limits[ing.zh]) {
+      maxQty = limits[ing.zh];
+      break;
+    }
+  }
+  if (newQty > maxQty) {
+    showToast(`数量不能超过${maxQty}${selectedUnit}`, 3000);
+    return;
+  }
   
   ing._state = 'done';
   let expiryDays = null;
