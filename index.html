@@ -2264,8 +2264,16 @@ function showInvModeHelp() {
 }
 
 async function promptAddToInventory(ing, idx) {
+  _currentPromptIng = ing;
   const inInv = inventory[ing.zh];
-  const unit = ing.unit || '个';
+  const defaultUnits = { 
+    '鸡蛋': ['dozen', '个'], '鸭蛋': ['个'], '鹌鹑蛋': ['个'],
+    '牛奶': ['gallon', 'oz', 'cup'], '酸奶': ['cup', 'oz'], '芝士': ['oz', 'lb'],
+    '面粉': ['lb', 'oz'], '大米': ['lb', 'oz'], '糖': ['lb', 'oz'], '盐': ['lb', 'oz'],
+    '黄油': ['stick', 'oz', 'lb'], '奶油': ['cup', 'oz']
+  };
+  const unitOptions = defaultUnits[ing.zh] || ['个'];
+  const unit = ing.unit || unitOptions[0];
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
   if (inInv) {
     msg += `<br><span style="color:#b86000;font-size:11px">库存已有: ${inInv.qty}${inInv.unit}，保质期: ${inInv.expiryDays ? inInv.expiryDays + '天' : '未知'}</span>`;
@@ -2276,17 +2284,32 @@ async function promptAddToInventory(ing, idx) {
   const inputContainer = document.getElementById('prompt-input-container');
   const footer = document.querySelector('#prompt-modal .modal-footer');
   
+  const unitOptionsHTML = unitOptions.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('');
+  
   titleEl.textContent = '录入库存';
   msgEl.innerHTML = msg;
   inputContainer.innerHTML = `
-    <div style="display:flex;gap:6px;flex:1;align-items:center;background:var(--surface2);padding:4px 8px;border-radius:8px;border:1px solid var(--border)">
-      <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:50px;padding:6px;border:none;background:transparent;font-size:14px;text-align:right">
-      <span style="font-size:13px;color:var(--muted)">${unit}</span>
+    <div style="display:flex;gap:4px;flex:1;align-items:center;background:var(--surface2);padding:4px 6px;border-radius:8px;border:1px solid var(--border)">
+      <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:40px;padding:4px;border:none;background:transparent;font-size:14px;text-align:right">
+      <select id="inv-unit-select" style="border:none;background:transparent;font-size:13px;color:var(--muted);padding:2px">
+        ${unitOptionsHTML}
+      </select>
     </div>
-    <input type="text" id="prompt-input" placeholder="保质期（选填）" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+    <input type="text" id="prompt-input" placeholder="保质期（如3天、1周）" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
     <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="语音输入">🎤</button>
     <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="拍照">📷</button>
   `;
+  
+  footer.innerHTML = `
+    <button class="btn btn-outline" onclick="cancelAddToInventory(${idx})" style="flex:1">不录入</button>
+    <button class="btn btn-primary" onclick="confirmAddToInventory(${idx})" style="flex:1">入库</button>
+  `;
+  
+  document.getElementById('prompt-modal').classList.add('open');
+  setTimeout(() => document.getElementById('inv-qty-input')?.focus(), 100);
+  
+  return new Promise(resolve => { promptResolve = resolve; });
+}
   
   footer.innerHTML = `
     <button class="btn btn-outline" onclick="cancelAddToInventory(${idx})" style="flex:1">不录入</button>
@@ -2305,8 +2328,10 @@ async function confirmAddToInventory(idx) {
   
   const input = document.getElementById('prompt-input');
   const qtyInput = document.getElementById('inv-qty-input');
+  const unitSelect = document.getElementById('inv-unit-select');
   const expiry = input.value;
   const newQty = parseFloat(qtyInput?.value) || ing.qty || 1;
+  const selectedUnit = unitSelect?.value || ing.unit || '个';
   
   ing._state = 'done';
   let expiryDays = null;
@@ -2319,8 +2344,7 @@ async function confirmAddToInventory(idx) {
     inventory[ing.zh].maxQty = Math.max(inventory[ing.zh].maxQty, inventory[ing.zh].qty);
     if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
   } else {
-    const unit = ing.unit || inventory[ing.zh]?.unit || '个';
-    inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: newQty, unit: unit, maxQty: newQty };
+    inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: newQty, unit: selectedUnit, maxQty: newQty };
     if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
   }
   
@@ -2487,11 +2511,32 @@ function closePromptModal(cancel = false) {
 }
 
 let promptVoiceRec = null;
+let _currentPromptIng = null;
 function startPromptVoice() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     showToast('浏览器不支持语音识别');
     return;
   }
+  const qtyInput = document.getElementById('inv-qty-input');
+  const unitSelect = document.getElementById('inv-unit-select');
+  const unit = unitSelect?.value || '个';
+  const qty = qtyInput?.value || '1';
+  
+  let hint = `可直接说：如 ${qty} ${unit}`;
+  if (_currentPromptIng && _currentPromptIng.zh) {
+    const zh = _currentPromptIng.zh;
+    const unitExamples = {
+      '鸡蛋': `${qty}dozen或${parseInt(qty)*12}个`, '鸭蛋': `${qty}个`, '鹌鹑蛋': `${qty}个`,
+      '牛奶': `${qty}gallon或${parseInt(qty)*500}ml`, '酸奶': `${qty}cup或${parseInt(qty)*240}ml`, '芝士': `${qty}oz或${Math.round(parseFloat(qty)*0.0625)}lb`,
+      '面粉': `${qty}lb或${Math.round(parseFloat(qty)*16)}oz`, '大米': `${qty}lb或${Math.round(parseFloat(qty)*16)}oz`,
+      '黄油': `${qty}stick或${parseInt(qty)*4}oz`, '奶油': `${qty}cup或${parseInt(qty)*240}ml`
+    };
+    const example = unitExamples[zh] || `${qty} ${unit}`;
+    const today = new Date();
+    const nextMonth = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}号`;
+    hint = `可直接说：${zh} ${example}，保质期到${nextMonth}`;
+  }
+  showToast(hint, 4000);
   const input = document.getElementById('prompt-input');
   const btn = document.getElementById('prompt-mic-btn');
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
