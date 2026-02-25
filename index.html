@@ -2286,7 +2286,7 @@ async function promptAddToInventory(ing, idx) {
   const unit = ing.unit || unitOptions[0];
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
   if (inInv) {
-    msg += `<br><span style="color:#b86000;font-size:11px">库存已有: ${inInv.qty}${inInv.unit}，保质期: ${inInv.expiryDays ? inInv.expiryDays + '天' : '未知'}</span>`;
+    msg += `<br><span style="color:#b86000;font-size:11px">库存已有: ${inInv.qty}${inInv.unit}</span>`;
   }
   
   const msgEl = document.getElementById('prompt-message');
@@ -2299,15 +2299,23 @@ async function promptAddToInventory(ing, idx) {
   titleEl.textContent = '录入库存';
   msgEl.innerHTML = msg;
   inputContainer.innerHTML = `
-    <div style="display:flex;gap:4px;flex:1;align-items:center;background:var(--surface2);padding:4px 6px;border-radius:8px;border:1px solid var(--border)">
-      <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:40px;padding:4px;border:none;background:transparent;font-size:14px;text-align:right">
-      <select id="inv-unit-select" style="border:none;background:transparent;font-size:13px;color:var(--muted);padding:2px">
-        ${unitOptionsHTML}
-      </select>
+    <div style="display:flex;gap:6px;width:100%">
+      <div style="flex:1;display:flex;align-items:center;background:var(--surface2);padding:8px 10px;border-radius:8px;border:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--muted);margin-right:6px">数量</span>
+        <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:50px;padding:2px;border:none;background:transparent;font-size:14px;text-align:right">
+        <select id="inv-unit-select" style="border:none;background:transparent;font-size:13px;color:var(--muted);margin-left:4px">
+          ${unitOptionsHTML}
+        </select>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;background:var(--surface);padding:8px 10px;border-radius:8px;border:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--muted);margin-right:6px">保质期</span>
+        <input type="text" id="prompt-input" placeholder="如3天、1周" style="flex:1;border:none;background:transparent;font-size:14px;font-family:inherit">
+      </div>
     </div>
-    <input type="text" id="prompt-input" placeholder="保质期（如3天、1周）" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
-    <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="语音输入">🎤</button>
-    <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="拍照">📷</button>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="flex:1;padding:8px;font-size:12px">🎤 语音录入</button>
+      <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="flex:1;padding:8px;font-size:12px">📷 拍照识别</button>
+    </div>
   `;
   
   footer.innerHTML = `
@@ -2494,9 +2502,7 @@ function closePromptModal(cancel = false) {
   // Restore input container
   const inputContainer = document.getElementById('prompt-input-container');
   inputContainer.innerHTML = `
-    <input type="text" id="prompt-input" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onkeydown="if(event.key==='Enter')closePromptModal()">
-    <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="语音输入">🎤</button>
-    <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="拍照">📷</button>
+    <input type="text" id="prompt-input" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onkeydown="if(event.key==='Enter')closePromptModal()">
   `;
   
   // Restore message
@@ -4905,11 +4911,8 @@ if ('serviceWorker' in navigator) {
   <div class="modal" style="max-width:340px">
     <h3 id="prompt-title" style="margin-bottom:4px">输入</h3>
     <p id="prompt-message" style="font-size:12px;color:var(--muted);margin:0 0 12px;font-weight:300"></p>
-    <div id="prompt-input-container" style="display:flex;gap:6px;align-items:center">
-      <input type="text" id="prompt-input" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onkeydown="if(event.key==='Enter')closePromptModal()">
-      <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="语音输入">🎤</button>
-      <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="拍照">📷</button>
-      <input type="file" id="prompt-camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePromptCamera(event)">
+    <div id="prompt-input-container">
+      <input type="text" id="prompt-input" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onkeydown="if(event.key==='Enter')closePromptModal()">
     </div>
     <div class="modal-footer" style="margin-top:14px">
       <button class="btn btn-outline" onclick="closePromptModal(true)" style="flex:1">取消</button>
