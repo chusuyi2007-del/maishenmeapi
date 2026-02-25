@@ -2299,17 +2299,17 @@ async function promptAddToInventory(ing, idx) {
   titleEl.textContent = '录入库存';
   msgEl.innerHTML = msg;
   inputContainer.innerHTML = `
-    <div style="display:flex;gap:6px;width:100%">
-      <div style="flex:1;display:flex;align-items:center;background:var(--surface2);padding:8px 10px;border-radius:8px;border:1px solid var(--border)">
-        <span style="font-size:12px;color:var(--muted);margin-right:6px">数量</span>
-        <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:50px;padding:2px;border:none;background:transparent;font-size:14px;text-align:right">
-        <select id="inv-unit-select" style="border:none;background:transparent;font-size:13px;color:var(--muted);margin-left:4px">
+    <div style="display:flex;gap:6px;width:100%;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;background:var(--surface2);padding:6px 8px;border-radius:8px;border:1px solid var(--border);flex-shrink:0">
+        <span style="font-size:12px;color:var(--muted)">数量</span>
+        <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:40px;padding:2px 4px;border:none;background:transparent;font-size:14px;text-align:right">
+        <select id="inv-unit-select" style="border:none;background:transparent;font-size:12px;color:var(--muted)">
           ${unitOptionsHTML}
         </select>
       </div>
-      <div style="flex:1;display:flex;align-items:center;background:var(--surface);padding:8px 10px;border-radius:8px;border:1px solid var(--border)">
-        <span style="font-size:12px;color:var(--muted);margin-right:6px">保质期</span>
-        <input type="text" id="prompt-input" placeholder="如3天、1周" style="flex:1;border:none;background:transparent;font-size:14px;font-family:inherit">
+      <div style="flex:1;min-width:120px;display:flex;align-items:center;background:var(--surface);padding:6px 8px;border-radius:8px;border:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--muted)">保质期</span>
+        <input type="text" id="prompt-input" placeholder="如3天、1周" style="flex:1;min-width:60px;border:none;background:transparent;font-size:14px;font-family:inherit">
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-top:8px">
