@@ -2310,17 +2310,6 @@ async function promptAddToInventory(ing, idx) {
   
   return new Promise(resolve => { promptResolve = resolve; });
 }
-  
-  footer.innerHTML = `
-    <button class="btn btn-outline" onclick="cancelAddToInventory(${idx})" style="flex:1">不录入</button>
-    <button class="btn btn-primary" onclick="confirmAddToInventory(${idx})" style="flex:1">入库</button>
-  `;
-  
-  document.getElementById('prompt-modal').classList.add('open');
-  setTimeout(() => document.getElementById('inv-qty-input')?.focus(), 100);
-  
-  return new Promise(resolve => { promptResolve = resolve; });
-}
 
 async function confirmAddToInventory(idx) {
   const ing = shoppingList[idx];
