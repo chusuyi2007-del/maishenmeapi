@@ -2341,8 +2341,11 @@ async function promptAddToInventory(ing, idx) {
   const unit = ing.unit || unitOptions[0];
   
   const integerUnits = ['个', '头', '把', '根', '棵', '颗', '袋', '瓶', '罐', '串', '枝', '盒', '包', '张', '块', '条'];
+  
+  // Check if all unit options are integer-only
+  const allInteger = unitOptions.every(u => integerUnits.includes(u));
   const useInteger = integerUnits.includes(unit);
-  const qtyStep = useInteger ? '1' : '0.1';
+  
   const qtyValue = useInteger ? Math.round(ing.qty || 1) : (ing.qty || 1);
   
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
@@ -2363,8 +2366,8 @@ async function promptAddToInventory(ing, idx) {
     <div style="display:flex;gap:6px;width:100%;flex-wrap:wrap">
       <div style="display:flex;align-items:center;background:var(--surface2);padding:6px 8px;border-radius:8px;border:1px solid var(--border);flex-shrink:0">
         <span style="font-size:12px;color:var(--muted)">数量</span>
-        <input type="number" id="inv-qty-input" value="${qtyValue}" min="${useInteger ? '1' : '0.1'}" step="${qtyStep}" style="width:40px;padding:2px 4px;border:none;background:transparent;font-size:14px;text-align:right">
-        <select id="inv-unit-select" style="border:none;background:transparent;font-size:12px;color:var(--muted)">
+        <input type="${useInteger && allInteger ? 'number' : 'text'}" id="inv-qty-input" value="${qtyValue}" ${useInteger && allInteger ? 'oninput="this.value=this.value.replace(/[^0-9]/g,\'\')"' : ''} style="width:45px;padding:2px 4px;border:none;background:transparent;font-size:14px;text-align:right">
+        <select id="inv-unit-select" onchange="onUnitChange(this.value)" style="border:none;background:transparent;font-size:12px;color:var(--muted)">
           ${unitOptionsHTML}
         </select>
       </div>
@@ -2431,6 +2434,19 @@ function cancelAddToInventory(idx) {
     renderChecklist();
   }
   closePromptModal();
+}
+
+function onUnitChange(newUnit) {
+  const integerUnits = ['个', '头', '把', '根', '棵', '颗', '袋', '瓶', '罐', '串', '枝', '盒', '包', '张', '块', '条'];
+  const input = document.getElementById('inv-qty-input');
+  if (integerUnits.includes(newUnit)) {
+    input.value = Math.round(parseFloat(input.value) || 1);
+    input.setAttribute('type', 'number');
+    input.oninput = function() { this.value = this.value.replace(/[^0-9]/g, ''); };
+  } else {
+    input.setAttribute('type', 'text');
+    input.oninput = null;
+  }
 }
 
 async function addDoneToInventory() {
