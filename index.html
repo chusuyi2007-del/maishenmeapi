@@ -506,6 +506,7 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
       <div class="header-mode-btn active" data-mode="home" onclick="setShoppingMode('home')">在家</div>
       <div class="header-mode-btn" data-mode="store" onclick="setShoppingMode('store')">在超市</div>
     </div>
+    <span id="header-store-name" style="font-size:12px;color:var(--green);font-weight:500;display:none"></span>
     <div class="header-avatar" onclick="openMenu()" title="菜单">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
@@ -531,10 +532,9 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
     <span class="slide-menu-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
     <div><div class="slide-menu-label">我的位置</div><div class="slide-menu-sub" id="menu-loc-label">未设置</div></div>
   </div>
-  <div class="slide-menu-item" style="opacity:.45;cursor:default">
+  <div class="slide-menu-item" id="menu-login-item" onclick="openAuthModal();closeMenu()">
     <span class="slide-menu-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-    <div><div class="slide-menu-label">登录 / 账号</div><div class="slide-menu-sub">即将推出</div></div>
-    <span style="font-size:10px;background:var(--surface2);padding:2px 8px;border-radius:20px;color:var(--muted);margin-left:auto">即将推出</span>
+    <div><div class="slide-menu-label" id="menu-auth-label">登录 / 账号</div><div class="slide-menu-sub" id="menu-auth-sub">登录同步数据</div></div>
   </div>
 </div>
 
@@ -1062,12 +1062,254 @@ const SUPABASE_URL = 'https://ysuqnzsvriyylkypdnex.supabase.co';  // 例如：ht
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzdXFuenN2cml5eWxreXBkbmV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MDQyMTcsImV4cCI6MjA4NzM4MDIxN30.jibQgU7yigLCu9rLAkQkpJI-Prf5UMfNVy4IlmB_8WA';  // anon public key
 
 let supabaseClient = null;
+let currentUser = null;
 try {
   if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 } catch(e) {
   console.warn('Supabase init failed:', e);
+}
+
+// ====== AUTH ======
+async function loadAuthState() {
+  if (!supabaseClient) return;
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session?.user) {
+      currentUser = session.user;
+      updateAuthUI();
+    }
+  } catch(e) {}
+  
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    const wasLoggedIn = !!currentUser;
+    currentUser = session?.user || null;
+    updateAuthUI();
+    // Load cloud data when user logs in
+    if (!wasLoggedIn && currentUser) {
+      loadUserDataFromCloud();
+    }
+  });
+}
+
+function updateAuthUI() {
+  const menuItem = document.getElementById('menu-login-item');
+  const label = document.getElementById('menu-auth-label');
+  const sub = document.getElementById('menu-auth-sub');
+  const loginForm = document.getElementById('auth-login-form');
+  const userView = document.getElementById('auth-user-view');
+  const emailEl = document.getElementById('auth-user-email');
+  
+  if (currentUser) {
+    if (menuItem) menuItem.onclick = () => { openAuthModal(); closeMenu(); };
+    if (label) label.textContent = currentUser.email || '已登录';
+    if (sub) sub.textContent = '点击查看账号';
+    if (loginForm) loginForm.style.display = 'none';
+    if (userView) userView.style.display = 'block';
+    if (emailEl) emailEl.textContent = currentUser.email;
+  } else {
+    if (menuItem) menuItem.onclick = () => { openAuthModal(); closeMenu(); };
+    if (label) label.textContent = '登录 / 账号';
+    if (sub) sub.textContent = '登录同步数据';
+    if (loginForm) loginForm.style.display = 'block';
+    if (userView) userView.style.display = 'none';
+  }
+}
+
+function openAuthModal() {
+  document.getElementById('auth-modal').classList.add('open');
+  updateAuthUI();
+}
+
+function closeAuthModal() {
+  document.getElementById('auth-modal').classList.remove('open');
+}
+
+async function doLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) {
+    showToast('请输入邮箱和密码', 2000);
+    return;
+  }
+  if (!supabaseClient) {
+    showToast('登录服务暂不可用', 2000);
+    return;
+  }
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    showToast(error.message, 3000);
+  } else {
+    showToast('登录成功', 2000);
+    closeAuthModal();
+    syncUserData();
+  }
+}
+
+async function doSignUp() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) {
+    showToast('请输入邮箱和密码', 2000);
+    return;
+  }
+  if (password.length < 6) {
+    showToast('密码至少6位', 2000);
+    return;
+  }
+  if (!supabaseClient) {
+    showToast('注册服务暂不可用', 2000);
+    return;
+  }
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) {
+    showToast(error.message, 3000);
+  } else {
+    showToast('注册成功！请查收邮箱验证链接', 3000);
+  }
+}
+
+async function doGoogleLogin() {
+  if (!supabaseClient) {
+    showToast('登录服务暂不可用', 2000);
+    return;
+  }
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) {
+    showToast(error.message, 3000);
+  }
+}
+
+async function doLogout() {
+  if (!supabaseClient) return;
+  await supabaseClient.auth.signOut();
+  showToast('已退出登录', 2000);
+  closeAuthModal();
+}
+
+async function syncUserData() {
+  if (!supabaseClient || !currentUser) return;
+  showToast('正在同步数据...', 1500);
+  
+  try {
+    // Sync inventory
+    await syncInventoryToCloud();
+    // Sync checklist  
+    await syncChecklistToCloud();
+    showToast('同步完成', 2000);
+  } catch(e) {
+    console.error('Sync failed:', e);
+    showToast('同步失败', 2000);
+  }
+}
+
+async function syncInventoryToCloud() {
+  if (!supabaseClient || !currentUser) return;
+  const userId = currentUser.id;
+  
+  // Get existing cloud data
+  const { data: existing } = await supabaseClient
+    .from('user_data')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('data_type', 'inventory')
+    .single();
+  
+  const localData = JSON.stringify(inventory);
+  
+  if (existing) {
+    // Update
+    await supabaseClient
+      .from('user_data')
+      .update({ data: localData, updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+  } else {
+    // Insert
+    await supabaseClient
+      .from('user_data')
+      .insert([{
+        user_id: userId,
+        data_type: 'inventory',
+        data: localData
+      }]);
+  }
+}
+
+async function syncChecklistToCloud() {
+  if (!supabaseClient || !currentUser) return;
+  const userId = currentUser.id;
+  
+  const { data: existing } = await supabaseClient
+    .from('user_data')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('data_type', 'checklist')
+    .single();
+  
+  const localData = JSON.stringify(shoppingList);
+  
+  if (existing) {
+    await supabaseClient
+      .from('user_data')
+      .update({ data: localData, updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+  } else {
+    await supabaseClient
+      .from('user_data')
+      .insert([{
+        user_id: userId,
+        data_type: 'checklist',
+        data: localData
+      }]);
+  }
+}
+
+async function loadUserDataFromCloud() {
+  if (!supabaseClient || !currentUser) return;
+  const userId = currentUser.id;
+  
+  try {
+    // Load inventory
+    const { data: invData } = await supabaseClient
+      .from('user_data')
+      .select('data')
+      .eq('user_id', userId)
+      .eq('data_type', 'inventory')
+      .single();
+    
+    if (invData?.data) {
+      const cloudInv = JSON.parse(invData.data);
+      // Merge: prefer cloud data, but keep local if cloud is empty
+      if (Object.keys(cloudInv).length > 0) {
+        inventory = cloudInv;
+        await saveInventory();
+        renderInventory();
+      }
+    }
+    
+    // Load checklist
+    const { data: listData } = await supabaseClient
+      .from('user_data')
+      .select('data')
+      .eq('user_id', userId)
+      .eq('data_type', 'checklist')
+      .single();
+    
+    if (listData?.data) {
+      const cloudList = JSON.parse(listData.data);
+      if (cloudList.length > 0) {
+        shoppingList = cloudList;
+        await saveChecklist();
+        renderChecklist();
+      }
+    }
+  } catch(e) {
+    console.log('No cloud data found');
+  }
 }
 
 // ====== window.storage polyfill (localStorage wrapper) ======
@@ -1312,10 +1554,18 @@ function updateModeUI() {
   document.querySelectorAll('.header-mode-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === shoppingMode);
   });
-  if (shoppingMode === 'store') {
+  const storeNameEl = document.getElementById('header-store-name');
+  if (shoppingMode === 'store' && currentStore) {
     showCurrentStoreBanner();
+    if (storeNameEl) {
+      storeNameEl.textContent = currentStore.name;
+      storeNameEl.style.display = 'inline';
+    }
   } else {
     hideCurrentStoreBanner();
+    if (storeNameEl) {
+      storeNameEl.style.display = 'none';
+    }
   }
 }
 
@@ -1385,6 +1635,10 @@ function selectStore(store) {
   showCurrentStoreBanner();
   updateModeUI();
   if (shoppingList.length) renderIngredients();
+  // Switch back to recipe page and show current store
+  switchTab('recipe');
+  document.getElementById('menu-loc-label').textContent = store.name;
+  showToast(`已切换到 ${store.name}`, 1500);
 }
 
 // ====== TABS ======
@@ -1556,6 +1810,10 @@ async function loadInventory() {
 async function saveInventory() {
   try { await window.storage.set('inventory-v2', JSON.stringify(inventory)); }
   catch(e) { window._inv = inventory; }
+  // Auto-sync to cloud if logged in
+  if (supabaseClient && currentUser) {
+    syncInventoryToCloud().catch(() => {});
+  }
 }
 
 function getStockStatus(item) {
@@ -2678,6 +2936,10 @@ async function saveChecklist() {
   };
   try { await window.storage.set('checklist', JSON.stringify(data)); }
   catch(e) { window._cl = data; }
+  // Auto-sync to cloud if logged in
+  if (supabaseClient && currentUser) {
+    syncChecklistToCloud().catch(() => {});
+  }
 }
 
 async function loadChecklist() {
@@ -5028,6 +5290,7 @@ async function sendExpiryNotifications() {
     await loadShoppingMode();
     await loadCurrentStore();
     await loadChecklist();
+    await loadAuthState();
     loadInvMode();
     renderInventory();
     if (savedTab === 'community') renderFeed();
@@ -5153,6 +5416,54 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal" style="max-width:340px">
+    <div style="text-align:center;padding:8px 0 16px">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <h3 id="auth-modal-title" style="margin:0 0 4px;font-size:18px">登录</h3>
+      <p id="auth-modal-sub" style="font-size:12px;color:var(--muted);margin:0;font-weight:300">登录后可同步库存和购物清单</p>
+    </div>
+    
+    <!-- Login form -->
+    <div id="auth-login-form">
+      <div style="margin-bottom:12px">
+        <input type="email" id="auth-email" placeholder="邮箱" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+      </div>
+      <div style="margin-bottom:16px">
+        <input type="password" id="auth-password" placeholder="密码" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%;margin-bottom:8px">登录</button>
+      <button class="btn btn-outline" onclick="doSignUp()" style="width:100%;margin-bottom:12px">注册新账号</button>
+      <div style="text-align:center">
+        <span style="font-size:12px;color:var(--muted)">或</span>
+      </div>
+      <button onclick="doGoogleLogin()" style="width:100%;margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        使用 Google 登录
+      </button>
+    </div>
+    
+    <!-- Logged in view -->
+    <div id="auth-user-view" style="display:none;text-align:center">
+      <div style="margin-bottom:16px">
+        <div id="auth-user-avatar" style="width:64px;height:64px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div id="auth-user-email" style="font-size:14px;font-weight:500"></div>
+      </div>
+      <button class="btn btn-primary" onclick="syncUserData()" style="width:100%;margin-bottom:8px">同步数据</button>
+      <button class="btn btn-outline" onclick="doLogout()" style="width:100%">退出登录</button>
+    </div>
+    
+    <div class="modal-footer" style="padding-top:16px">
+      <button class="btn btn-outline" onclick="closeAuthModal()" style="width:100%">关闭</button>
+    </div>
+  </div>
+</div>
+
 <!-- DELETE INVENTORY CONFIRM MODAL -->
 <div class="modal-overlay" id="delete-modal">
   <div class="modal" style="max-width:320px">
@@ -5169,5 +5480,35 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </div>
+
+<!-- ====== CAPACITOR PLUGINS ====== -->
+<script>
+window.Capacitor = window.Capacitor || {};
+window.Capacitor.Plugins = window.Capacitor.Plugins || {};
+
+// Use Capacitor Preferences as storage in native app
+if (window.Capacitor && window.Capacitor.isNative) {
+  const { Preferences } = window.Capacitor.Plugins;
+  window.storage = {
+    async get(key) {
+      try {
+        const result = await Preferences.get({ key });
+        return result?.value ? { value: result.value } : null;
+      } catch(e) { return null; }
+    },
+    async set(key, value) {
+      try {
+        await Preferences.set({ key, value: String(value) });
+      } catch(e) {}
+    }
+  };
+}
+
+// Status bar style
+if (window.Capacitor && window.Capacitor.Plugins.StatusBar) {
+  window.Capacitor.Plugins.StatusBar.setStyle({ style: 'DARK' });
+  window.Capacitor.Plugins.StatusBar.setBackgroundColor({ color: '#2d6a4f' });
+}
+</script>
 </body>
 </html>
