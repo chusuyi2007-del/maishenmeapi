@@ -2273,7 +2273,14 @@ async function promptAddToInventory(ing, idx) {
     '黄油': ['stick', 'oz', 'lb'], '奶油': ['cup', 'oz'],
     '牛肉': ['lb', 'oz'], '猪肉': ['lb', 'oz'], '羊肉': ['lb', 'oz'],
     '五花肉': ['lb', 'oz'], '牛腩': ['lb', 'oz'], '猪排': ['lb', 'oz'],
-    '鸡腿': ['个', 'lb', 'oz'], '鸡翅': ['个', 'lb', 'oz'], '翅膀': ['个', 'lb', 'oz'], '鸡胸': ['lb', 'oz']
+    '鸡腿': ['个', 'lb', 'oz'], '鸡翅': ['个', 'lb', 'oz'], '翅膀': ['个', 'lb', 'oz'], '鸡胸': ['lb', 'oz'],
+    '生抽': ['瓶', '袋', 'oz'], '老抽': ['瓶', '袋', 'oz'], '酱油': ['瓶', '袋', 'oz'], '蚝油': ['瓶', '袋', 'oz'],
+    '料酒': ['瓶', '袋', 'oz'], '醋': ['瓶', '袋', 'oz'], '糖': ['lb', 'oz', '袋'],
+    '豆瓣酱': ['瓶', '袋', 'oz'], '甜面酱': ['瓶', '袋', 'oz'], '辣椒酱': ['瓶', '袋', 'oz'],
+    '八角': ['袋', 'oz'], '花椒': ['袋', 'oz'], '桂皮': ['袋', 'oz'],
+    '淀粉': ['袋', 'lb', 'oz'], '生粉': ['袋', 'lb', 'oz'],
+    '可乐': ['瓶', '罐', '升'], '雪碧': ['瓶', '罐', '升'], '果汁': ['瓶', '罐', '升'],
+    '矿泉水': ['瓶', '升'], '水': ['瓶', '升']
   };
   const unitOptions = defaultUnits[ing.zh] || ['个'];
   const unit = ing.unit || unitOptions[0];
@@ -2524,7 +2531,14 @@ function startPromptVoice() {
       '黄油': `${qty}stick或${parseInt(qty)*4}oz`, '奶油': `${qty}cup或${parseInt(qty)*240}ml`,
       '牛肉': `${qty}磅`, '猪肉': `${qty}磅`, '羊肉': `${qty}磅`,
       '五花肉': `${qty}磅`, '牛腩': `${qty}磅`, '猪排': `${qty}磅`,
-      '鸡腿': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡翅': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '翅膀': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡胸': `${qty}磅`
+      '鸡腿': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡翅': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '翅膀': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡胸': `${qty}磅`,
+      '生抽': `${qty}瓶或${qty}袋`, '老抽': `${qty}瓶或${qty}袋`, '酱油': `${qty}瓶或${qty}袋`, '蚝油': `${qty}瓶或${qty}袋`,
+      '料酒': `${qty}瓶或${qty}袋`, '醋': `${qty}瓶或${qty}袋`,
+      '豆瓣酱': `${qty}瓶或${qty}袋`, '甜面酱': `${qty}瓶或${qty}袋`, '辣椒酱': `${qty}瓶或${qty}袋`,
+      '八角': `${qty}袋`, '花椒': `${qty}袋`, '桂皮': `${qty}袋`,
+      '淀粉': `${qty}袋`, '生粉': `${qty}袋`,
+      '可乐': `${qty}瓶或${qty}罐`, '雪碧': `${qty}瓶或${qty}罐`, '果汁': `${qty}瓶或${qty}罐`,
+      '矿泉水': `${qty}瓶`, '水': `${qty}瓶`
     };
     const example = unitExamples[zh] || `${qty} ${unit}`;
     const today = new Date();
