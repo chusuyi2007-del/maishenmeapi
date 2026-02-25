@@ -463,6 +463,10 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
 .app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 18px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .app-logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--green);letter-spacing:-.3px}
 .app-logo span{color:var(--ink)}
+.header-mode-toggle{display:flex;background:var(--surface2);border-radius:20px;padding:2px;gap:2px;cursor:pointer;user-select:none}
+.header-mode-btn{padding:4px 12px;border-radius:18px;font-size:12px;font-weight:500;color:var(--muted);transition:all .2s}
+.header-mode-btn.active{background:var(--green);color:#fff;box-shadow:0 1px 4px rgba(45,106,79,.3)}
+.header-mode-btn:not(.active):hover{color:var(--ink)}
 .header-avatar{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .15s}
 .header-avatar:hover{border-color:var(--green);color:var(--green)}
 
@@ -498,6 +502,10 @@ label{font-size:12px;font-weight:500;color:var(--ink2);display:block;margin-bott
 <header class="app-header">
   <div class="app-logo">识<span>菜</span></div>
   <div style="display:flex;align-items:center;gap:10px">
+    <div class="header-mode-toggle" id="mode-toggle">
+      <div class="header-mode-btn active" data-mode="home" onclick="setShoppingMode('home')">在家</div>
+      <div class="header-mode-btn" data-mode="store" onclick="setShoppingMode('store')">在超市</div>
+    </div>
     <div class="header-avatar" onclick="openMenu()" title="菜单">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
@@ -1152,6 +1160,7 @@ let shoppingList = [], currentStar = 0, currentSentiment = '', reviewPhotoData =
 let inventory = {}; // {zh: {zh, en, qty, unit, maxQty}}
 let currentUseItem = null;
 let userLocation = { city: '', zip: '', storeType: 'any' }; // user location state
+let shoppingMode = 'home'; // 'home' or 'store'
 
 
 // ====== STORE SELECTOR ======
@@ -1280,6 +1289,102 @@ async function loadLocation() {
   } catch(e) { userLocation = window._loc || { city: '', zip: '', storeType: 'any' }; }
   updateLocationBanner();
   // GPS handles location now - no manual modal on first visit
+}
+
+async function loadShoppingMode() {
+  try {
+    const r = await window.storage.get('shopping-mode');
+    if (r) shoppingMode = r.value;
+  } catch(e) { shoppingMode = 'home'; }
+  updateModeUI();
+}
+
+function setShoppingMode(mode) {
+  shoppingMode = mode;
+  window.storage?.set('shopping-mode', mode);
+  updateModeUI();
+  if (mode === 'store') {
+    detectCurrentStore();
+  }
+}
+
+function updateModeUI() {
+  document.querySelectorAll('.header-mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === shoppingMode);
+  });
+  if (shoppingMode === 'store') {
+    showCurrentStoreBanner();
+  } else {
+    hideCurrentStoreBanner();
+  }
+}
+
+function showCurrentStoreBanner() {
+  let banner = document.getElementById('current-store-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'current-store-banner';
+    banner.style.cssText = 'background:var(--green-light);padding:8px 18px;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--green-mid)';
+    banner.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span id="current-store-name" style="font-weight:500">选择超市</span><span style="margin-left:auto;color:var(--muted);font-size:11px;cursor:pointer" onclick="openStoreSelector()">切换</span>';
+    document.body.insertBefore(banner, document.body.firstChild);
+    document.body.style.paddingTop = '72px';
+  }
+  if (currentStore) {
+    document.getElementById('current-store-name').textContent = currentStore.name;
+  }
+}
+
+function hideCurrentStoreBanner() {
+  const banner = document.getElementById('current-store-banner');
+  if (banner) {
+    banner.remove();
+    document.body.style.paddingTop = '54px';
+  }
+}
+
+async function detectCurrentStore() {
+  if (!navigator.geolocation) {
+    openStoreSelector();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const { lat, lng } = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    // Try to find nearest store from loaded stores
+    if (storesData && storesData.length) {
+      let nearest = null, minDist = Infinity;
+      storesData.forEach(s => {
+        if (s.geometry?.location) {
+          const d = haversine(lat, lng, s.geometry.location.lat(), s.geometry.location.lng());
+          if (d < minDist) { minDist = d; nearest = s; }
+        }
+      });
+      if (nearest && minDist < 0.5) { // within 0.5 miles
+        selectStore(nearest);
+        showToast(`已检测到: ${nearest.name}`, 2000);
+        return;
+      }
+    }
+    openStoreSelector();
+  }, () => {
+    openStoreSelector();
+  }, { timeout: 5000, enableHighAccuracy: false });
+}
+
+function openStoreSelector() {
+  switchTab('stores');
+  showToast('请选择当前所在超市', 2000);
+}
+
+function selectStore(store) {
+  currentStore = store;
+  // Save to localStorage - try to save by ID if it's a known store
+  const storeId = store.id || (QUICK_STORES.find(s => s.name === store.name)?.id);
+  if (storeId) {
+    try { window.storage.set('current-store', storeId); } catch(e) {}
+  }
+  showCurrentStoreBanner();
+  updateModeUI();
+  if (shoppingList.length) renderIngredients();
 }
 
 // ====== TABS ======
@@ -1457,6 +1562,40 @@ function getStockStatus(item) {
   if (!item || item.qty <= 0) return 'none';
   if (item.qty < item.maxQty * 0.25) return 'low';
   return 'ok';
+}
+
+function getStoreAvailabilityTip(zh) {
+  if (!zh) return '';
+  const z = zh.toLowerCase();
+  const allSpecialties = [];
+  QUICK_STORES.forEach(s => {
+    if (s.specialties) {
+      s.specialties.forEach(item => {
+        allSpecialties.push({ store: s.name, type: s.type, item: item.toLowerCase() });
+      });
+    }
+  });
+  const matches = allSpecialties.filter(s => z.includes(s.item) || s.item.includes(z));
+  if (!matches.length) return '';
+  const storeTypes = [...new Set(matches.map(m => m.type))];
+  const storeNames = [...new Set(matches.map(m => m.store))];
+  
+  if (shoppingMode === 'store' && currentStore) {
+    const hasThis = matches.some(m => currentStore.name.toLowerCase().includes(m.store.toLowerCase()) || m.store.toLowerCase().includes(currentStore.name.toLowerCase()));
+    if (hasThis) {
+      return `<div style="font-size:10px;color:var(--green);margin-top:2px">✓ ${currentStore.name} 有售</div>`;
+    } else {
+      return `<div style="font-size:10px;color:var(--yellow);margin-top:2px">⚠ ${currentStore.name} 可能没有</div>`;
+    }
+  }
+  if (storeTypes.includes('asian')) {
+    return `<div style="font-size:10px;color:var(--green);margin-top:2px">🏪 亚裔超市通常有</div>`;
+  } else if (storeTypes.includes('regular')) {
+    return `<div style="font-size:10px;color:var(--muted);margin-top:2px">🏪 普通超市可能有</div>`;
+  } else if (storeTypes.includes('organic')) {
+    return `<div style="font-size:10px;color:var(--muted);margin-top:2px">🏪 有机超市较少</div>`;
+  }
+  return '';
 }
 
 function renderInventory() {
@@ -2148,6 +2287,9 @@ function clItemHTML(ing, i) {
   const invTip = inStock && !state ? `<div style="font-size:10px;color:#b86000;margin-top:2px">🟡 库存: ${inv.qty}${inv.unit} · ${inv.expiryDays ? inv.expiryDays + '天' : '未知'}</div>` : '';
   const itemStyle = inStock && !state ? 'background:#fff8e1;border-color:var(--yellow-light)' : '';
 
+  // Store availability tendency
+  const storeTip = getStoreAvailabilityTip(ing.zh);
+
   let actions = '';
   if (state === 'missing') {
     actions = `<div class="cl-actions" style="display:flex;gap:4px">
@@ -2207,6 +2349,7 @@ function clItemHTML(ing, i) {
       <div class="cl-en">${ing.en} · ${ing.section}</div>
       ${cutTip}
       ${invTip}
+      ${storeTip}
       ${fromDishes}
     </div>
     ${actions}
@@ -2405,20 +2548,24 @@ async function confirmAddToInventory(idx) {
   const selectedUnit = unitSelect?.value || ing.unit || '个';
   
   const maxQtyByUnit = {
-    '个': { '鸡蛋': 20, '鸭蛋': 20, '鹌鹑蛋': 30, '土豆': 20, '番茄': 20, '苹果': 20, '橙子': 15, '香蕉': 15, '大蒜': 15, '鸡腿': 15, '鸡翅': 15, '猪蹄': 10 },
-    '瓶': { '生抽': 10, '老抽': 10, '酱油': 10, '蚝油': 10, '料酒': 10, '醋': 10, '可乐': 10, '雪碧': 10, '果汁': 10, '矿泉水': 10, '啤酒': 15, '红酒': 10, '番茄酱': 10, '沙拉酱': 10, '蜂蜜': 10 },
-    '袋': { '面粉': 10, '大米': 10, '糖': 10, '盐': 10, '冰糖': 10, '红糖': 10, '白糖': 10, '味精': 10, '鸡精': 10, '八角': 10, '花椒': 10, '桂皮': 10, '香叶': 10, '干辣椒': 10, '五香粉': 10, '淀粉': 10, '生粉': 10, '面包屑': 10, '面条': 10, '方便面': 10, '腐竹': 10, '木耳': 10, '香菇': 10, '蘑菇': 10, '菠菜': 10 },
-    'lb': { '牛肉': 10, '猪肉': 10, '羊肉': 10, '五花肉': 10, '牛腩': 10, '鸡胸': 10, '虾': 5, '鱼': 5, '三文鱼': 5, '金枪鱼': 5, '鳕鱼': 5, '虾仁': 5, '土豆': 10, '番茄': 10, '黄瓜': 10, '胡萝卜': 10, '洋葱': 10, '白菜': 10, '西兰花': 10, '菠菜': 10, '芹菜': 10, '苹果': 10, '香蕉': 10, '橙子': 10, '葡萄': 10 },
-    'oz': { '芝士': 5, '黄油': 5, '奶油': 5 },
-    'dozen': { '鸡蛋': 5 },
-    'gallon': { '牛奶': 5 },
-    '把': { '葱': 20, '芹菜': 15, '菠菜': 15, '香菜': 10 },
-    '根': { '黄瓜': 15, '胡萝卜': 15, '葱': 20, '芹菜': 15 },
-    '棵': { '白菜': 10, '西兰花': 10, '生菜': 10, '娃娃菜': 10 },
-    '罐': { '可乐': 15, '雪碧': 15, '果汁': 15, '啤酒': 20 }
+    '个': { '鸡蛋': 30, '鸭蛋': 20, '鹌鹑蛋': 30, '皮蛋': 20, '咸鸭蛋': 20, '土豆': 30, '番茄': 30, '苹果': 30, '橙子': 20, '香蕉': 20, '大蒜': 20, '姜': 15, '鸡腿': 20, '鸡翅': 20, '鸡翅根': 20, '鸡胸': 15, '猪蹄': 12, '五花肉': 15, '牛排': 15, '汉堡肉': 15, '馒头': 30, '花卷': 20, '包子': 20, '饺子': 30, '汤圆': 20, '粽子': 15 },
+    '瓶': { '生抽': 10, '老抽': 10, '酱油': 10, '蚝油': 10, '料酒': 10, '醋': 10, '可乐': 12, '雪碧': 12, '果汁': 12, '矿泉水': 24, '啤酒': 24, '红酒': 12, '白酒': 10, '番茄酱': 10, '沙拉酱': 10, '蜂蜜': 10, '麻油': 10, '芝麻油': 10, '花生油': 8, '玉米油': 8, '橄榄油': 8, '菜籽油': 8, '辣椒油': 8, '豆瓣酱': 10, '甜面酱': 10, '烤肉酱': 10, '火锅底料': 10, '浓汤宝': 10, '沙茶酱': 10, '咖喱': 8 },
+    '袋': { '面粉': 20, '大米': 20, '糖': 15, '盐': 15, '冰糖': 15, '红糖': 15, '白糖': 15, '味精': 15, '鸡精': 15, '八角': 20, '花椒': 20, '桂皮': 20, '香叶': 20, '干辣椒': 20, '五香粉': 15, '淀粉': 15, '生粉': 15, '面包屑': 15, '面条': 20, '方便面': 30, '螺蛳粉': 20, '酸辣粉': 15, '腐竹': 15, '木耳': 15, '香菇': 15, '蘑菇': 15, '海带': 15, '紫菜': 20, '粉丝': 15, '宽粉': 15, '米线': 15, '燕麦': 15, '玉米片': 15, '薯片': 10, '瓜子': 10, '花生': 15, '腰果': 10, '杏仁': 10, '葡萄干': 10, '蔓越莓干': 10 },
+    'lb': { '牛肉': 20, '猪肉': 20, '羊肉': 15, '五花肉': 20, '牛腩': 15, '牛腱': 15, '鸡胸': 20, '鸡腿': 20, '鸡翅': 15, '虾': 10, '鱼': 10, '三文鱼': 10, '金枪鱼': 10, '鳕鱼': 10, '虾仁': 10, '龙利鱼': 10, '巴沙鱼': 10, '土豆': 20, '番茄': 20, '黄瓜': 20, '胡萝卜': 20, '洋葱': 20, '白菜': 15, '西兰花': 15, '菠菜': 15, '芹菜': 15, '苹果': 20, '香蕉': 20, '橙子': 15, '葡萄': 15, '梨': 15, '桃子': 15, '西瓜': 10, '哈密瓜': 10, '南瓜': 10, '冬瓜': 10, '茄子': 15, '青椒': 15, '红椒': 15, '豆角': 15 },
+    'g': { '冰糖': 500, '红糖': 500, '白糖': 500, '盐': 1000, '味精': 500, '鸡精': 500, '淀粉': 1000, '生粉': 1000, '面粉': 2000, '奶粉': 1000, '咖啡': 500, '茶叶': 500, '花茶': 300, '枸杞': 500, '红枣': 500, '桂圆': 300, '莲子': 500, '薏米': 1000, '红豆': 1000, '绿豆': 1000, '黑豆': 1000, '黄豆': 2000, '小米': 1000, '糯米': 1000, '黑米': 1000, '燕麦片': 1000, '麦片': 1000, '玉米面': 1000, '高筋面粉': 2000, '低筋面粉': 2000, '泡打粉': 300, '酵母': 300, '可可粉': 300, '抹茶粉': 200, '芝士粉': 500, '披萨草': 100, '罗勒': 100, '迷迭香': 100, '百里香': 100, '牛至': 100, '欧芹': 100, '蒜粉': 200, '姜粉': 200, '辣椒粉': 300, '花椒粉': 300, '五香粉': 300, '孜然': 300, '肉桂': 200, '丁香': 200, '小茴香': 300, '黑胡椒': 300, '白胡椒': 300 },
+    'oz': { '芝士': 10, '黄油': 10, '奶油': 10, '冰糖': 32, '红糖': 32, '白糖': 32, '盐': 32, '培根': 10, '火腿': 10, '香肠': 15, '午餐肉': 10, '蟹棒': 10, '鱼丸': 10, '虾丸': 10 },
+    'dozen': { '鸡蛋': 10 },
+    'gallon': { '牛奶': 8, '橙汁': 6, '苹果汁': 6 },
+    'cup': { '牛奶': 20, '奶油': 15, '果汁': 15 },
+    '把': { '葱': 30, '芹菜': 20, '菠菜': 20, '香菜': 15, '韭菜': 15, '小白菜': 15, '油菜': 15, '茼蒿': 15, '空心菜': 15, '苋菜': 15 },
+    '根': { '黄瓜': 20, '胡萝卜': 20, '葱': 30, '芹菜': 20, '玉米': 15, '茄子': 15 },
+    '棵': { '白菜': 15, '西兰花': 15, '生菜': 15, '娃娃菜': 15, '菠菜': 15, '油菜': 15 },
+    '罐': { '可乐': 24, '雪碧': 24, '果汁': 24, '啤酒': 48, '椰子水': 15, '能量饮料': 24 },
+    '盒': { '牛奶': 20, '酸奶': 20, '芝士': 15, '鸡蛋': 20, '豆腐': 20, '肉馅': 15 },
+    '磅': { '牛肉': 20, '猪肉': 20, '羊肉': 15, '鸡肉': 20, '虾': 10, '鱼': 10 }
   };
   
-  let maxQty = 50;
+  let maxQty = 100;
   for (const [unit, limits] of Object.entries(maxQtyByUnit)) {
     if (selectedUnit === unit && limits[ing.zh]) {
       maxQty = limits[ing.zh];
@@ -4878,6 +5025,7 @@ async function sendExpiryNotifications() {
     document.getElementById('tab-' + (tabMap[savedTab] || 'recipe'))?.classList.add('active');
     await loadInventory();
     await loadLocation();
+    await loadShoppingMode();
     await loadCurrentStore();
     await loadChecklist();
     loadInvMode();
