@@ -2270,7 +2270,10 @@ async function promptAddToInventory(ing, idx) {
     '鸡蛋': ['dozen', '个'], '鸭蛋': ['个'], '鹌鹑蛋': ['个'],
     '牛奶': ['gallon', 'oz', 'cup'], '酸奶': ['cup', 'oz'], '芝士': ['oz', 'lb'],
     '面粉': ['lb', 'oz'], '大米': ['lb', 'oz'], '糖': ['lb', 'oz'], '盐': ['lb', 'oz'],
-    '黄油': ['stick', 'oz', 'lb'], '奶油': ['cup', 'oz']
+    '黄油': ['stick', 'oz', 'lb'], '奶油': ['cup', 'oz'],
+    '牛肉': ['lb', 'oz'], '猪肉': ['lb', 'oz'], '羊肉': ['lb', 'oz'],
+    '五花肉': ['lb', 'oz'], '牛腩': ['lb', 'oz'], '猪排': ['lb', 'oz'],
+    '鸡腿': ['个', 'lb', 'oz'], '鸡翅': ['个', 'lb', 'oz'], '翅膀': ['个', 'lb', 'oz'], '鸡胸': ['lb', 'oz']
   };
   const unitOptions = defaultUnits[ing.zh] || ['个'];
   const unit = ing.unit || unitOptions[0];
@@ -2518,7 +2521,10 @@ function startPromptVoice() {
       '鸡蛋': `${qty}dozen或${parseInt(qty)*12}个`, '鸭蛋': `${qty}个`, '鹌鹑蛋': `${qty}个`,
       '牛奶': `${qty}gallon或${parseInt(qty)*500}ml`, '酸奶': `${qty}cup或${parseInt(qty)*240}ml`, '芝士': `${qty}oz或${Math.round(parseFloat(qty)*0.0625)}lb`,
       '面粉': `${qty}lb或${Math.round(parseFloat(qty)*16)}oz`, '大米': `${qty}lb或${Math.round(parseFloat(qty)*16)}oz`,
-      '黄油': `${qty}stick或${parseInt(qty)*4}oz`, '奶油': `${qty}cup或${parseInt(qty)*240}ml`
+      '黄油': `${qty}stick或${parseInt(qty)*4}oz`, '奶油': `${qty}cup或${parseInt(qty)*240}ml`,
+      '牛肉': `${qty}磅`, '猪肉': `${qty}磅`, '羊肉': `${qty}磅`,
+      '五花肉': `${qty}磅`, '牛腩': `${qty}磅`, '猪排': `${qty}磅`,
+      '鸡腿': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡翅': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '翅膀': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡胸': `${qty}磅`
     };
     const example = unitExamples[zh] || `${qty} ${unit}`;
     const today = new Date();
