@@ -2267,7 +2267,7 @@ async function promptAddToInventory(ing, idx) {
   const inInv = inventory[ing.zh];
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
   if (inInv) {
-    msg += `<br><span style="color:var(--yellow);font-size:11px">库存已有: ${inInv.qty}${inInv.unit}，保质期: ${inInv.expiryDays ? inInv.expiryDays + '天' : '未知'}</span>`;
+    msg += `<br><span style="color:#b86000;font-size:11px">库存已有: ${inInv.qty}${inInv.unit}，保质期: ${inInv.expiryDays ? inInv.expiryDays + '天' : '未知'}</span>`;
   }
   
   const input = document.getElementById('prompt-input');
@@ -2276,9 +2276,11 @@ async function promptAddToInventory(ing, idx) {
   const footer = document.getElementById('prompt-modal').querySelector('.modal-footer');
   
   titleEl.textContent = '录入库存';
-  msgEl.innerHTML = msg;
-  input.placeholder = '保质期（选填，如 3天后）';
-  input.value = '';
+  msgEl.innerHTML = msg + `
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:70px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+      <input type="text" id="prompt-input" placeholder="保质期（选填，如 3天后）" style="flex:1">
+    </div>`;
   
   footer.innerHTML = `
     <button class="btn btn-outline" onclick="cancelAddToInventory(${idx})" style="flex:1">不录入</button>
@@ -2286,7 +2288,7 @@ async function promptAddToInventory(ing, idx) {
   `;
   
   document.getElementById('prompt-modal').classList.add('open');
-  setTimeout(() => input.focus(), 100);
+  setTimeout(() => document.getElementById('inv-qty-input').focus(), 100);
   
   return new Promise(resolve => { promptResolve = resolve; });
 }
@@ -2296,7 +2298,9 @@ async function confirmAddToInventory(idx) {
   if (!ing) { closePromptModal(true); return; }
   
   const input = document.getElementById('prompt-input');
+  const qtyInput = document.getElementById('inv-qty-input');
   const expiry = input.value;
+  const newQty = parseFloat(qtyInput?.value) || ing.qty || 1;
   
   ing._state = 'done';
   let expiryDays = null;
@@ -2305,11 +2309,11 @@ async function confirmAddToInventory(idx) {
   }
   
   if (inventory[ing.zh]) {
-    inventory[ing.zh].qty += ing.qty;
+    inventory[ing.zh].qty += newQty;
     inventory[ing.zh].maxQty = Math.max(inventory[ing.zh].maxQty, inventory[ing.zh].qty);
     if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
   } else {
-    inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: ing.qty, unit: ing.unit, maxQty: ing.qty };
+    inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: newQty, unit: ing.unit, maxQty: newQty };
     if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
   }
   
