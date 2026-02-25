@@ -2782,13 +2782,14 @@ duck egg → egg → quail egg
     };
     
     const zhCount = {};
-    r.substitutes.forEach(s => { zhCount[s.zh] = (zhCount[s.zh] || 0) + 1; });
-    
     const zhEnMap = {};
-    r.substitutes.forEach(s => {
-      if (!zhEnMap[s.zh]) zhEnMap[s.zh] = [];
-      zhEnMap[s.zh].push(s.en);
-    });
+    if (r.substitutes && r.substitutes.length > 0) {
+      r.substitutes.forEach(s => { zhCount[s.zh] = (zhCount[s.zh] || 0) + 1; });
+      r.substitutes.forEach(s => {
+        if (!zhEnMap[s.zh]) zhEnMap[s.zh] = [];
+        zhEnMap[s.zh].push(s.en);
+      });
+    }
     
     const getZhDetail = (zh, en) => {
       if (!en) return zh;
@@ -2815,28 +2816,32 @@ duck egg → egg → quail egg
       return zh;
     };
     
-    const subItemsHTML = r.substitutes && r.substitutes.length > 0 
-      ? r.substitutes.map((s, i) => {
-      const sameCat = s.same_category === true || s.same_category === 'true';
-      const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
-      const icon = getSubIcon(s.zh);
-      const zhDetail = getZhDetail(s.zh, s.en);
-      return `<div class="sub-result-item">
-        <div class="sub-rank-row"><div class="sub-rank">${i+1}</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:24px">${icon}</span>
-          <div><div class="sub-name">${zhDetail}${catTag}</div><div class="sub-en">(${s.en ? s.en.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ''})</div></div>
-        </div>
-        <div class="sub-avail" style="display:flex;align-items:center;gap:3px;color:${ac[s.availability]||'var(--muted)'}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> ${s.availability}</div></div>
-        <div class="sub-where" style="display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> ${s.where}</div>
-        <div class="sub-flavor">${s.flavor_change || '无描述'}</div>
-        <div class="sub-ratio">用量：${s.ratio || '1:1'} · 适合：${s.best_for || '一般菜'}</div>
-        ${s.cook_tip ? `<div style="font-size:10px;color:var(--blue);margin-top:4px">🍳 烹饪：${s.cook_tip}</div>` : ''}
-      </div>`;
-    });
+    let subItemsHTML = '';
+    if (r.substitutes && r.substitutes.length > 0) {
+      subItemsHTML = r.substitutes.map((s, i) => {
+        const sameCat = s.same_category === true || s.same_category === 'true';
+        const catTag = sameCat ? '<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px">同部位</span>' : '';
+        const icon = getSubIcon(s.zh);
+        const zhDetail = getZhDetail(s.zh, s.en);
+        return `<div class="sub-result-item">
+          <div class="sub-rank-row"><div class="sub-rank">${i+1}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:24px">${icon}</span>
+            <div><div class="sub-name">${zhDetail}${catTag}</div><div class="sub-en">(${s.en ? s.en.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ''})</div></div>
+          </div>
+          <div class="sub-avail" style="display:flex;align-items:center;gap:3px;color:${ac[s.availability]||'var(--muted)'}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> ${s.availability}</div></div>
+          <div class="sub-where" style="display:flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> ${s.where}</div>
+          <div class="sub-flavor">${s.flavor_change || '无描述'}</div>
+          <div class="sub-ratio">用量：${s.ratio || '1:1'} · 适合：${s.best_for || '一般菜'}</div>
+          ${s.cook_tip ? `<div style="font-size:10px;color:var(--blue);margin-top:4px">🍳 烹饪：${s.cook_tip}</div>` : ''}
+        </div>`;
+      }).join('');
+    } else {
+      subItemsHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">没有找到合适的替代品</div>';
+    }
     
     result.innerHTML = `<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">原食材</div><div style="font-size:15px;font-weight:500">${r.original}</div></div>` +
-      (r.substitutes && r.substitutes.length > 0 ? subItemsHTML.join('') : '<div style="text-align:center;padding:20px;color:var(--muted)">没有找到合适的替代品</div>') +
+      subItemsHTML +
       (r.tip ? `<div style="font-size:11px;color:var(--muted);margin-top:7px;font-style:italic">${r.tip}</div>` : '');
   } catch(e) { stop(); result.innerHTML = '<p style="color:var(--muted);text-align:center;font-size:13px;padding:14px">查找失败，请重试</p>'; }
   btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新查找</span>';
