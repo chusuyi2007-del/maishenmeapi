@@ -2265,6 +2265,7 @@ function showInvModeHelp() {
 
 async function promptAddToInventory(ing, idx) {
   const inInv = inventory[ing.zh];
+  const unit = ing.unit || '个';
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
   if (inInv) {
     msg += `<br><span style="color:#b86000;font-size:11px">库存已有: ${inInv.qty}${inInv.unit}，保质期: ${inInv.expiryDays ? inInv.expiryDays + '天' : '未知'}</span>`;
@@ -2278,10 +2279,11 @@ async function promptAddToInventory(ing, idx) {
   titleEl.textContent = '录入库存';
   msgEl.innerHTML = msg;
   inputContainer.innerHTML = `
-    <div style="display:flex;gap:8px;flex:1">
-      <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:60px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px">
-      <input type="text" id="prompt-input" placeholder="保质期（选填，如 3天后）" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
+    <div style="display:flex;gap:6px;flex:1;align-items:center;background:var(--surface2);padding:4px 8px;border-radius:8px;border:1px solid var(--border)">
+      <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:50px;padding:6px;border:none;background:transparent;font-size:14px;text-align:right">
+      <span style="font-size:13px;color:var(--muted)">${unit}</span>
     </div>
+    <input type="text" id="prompt-input" placeholder="保质期（选填）" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
     <button class="btn" id="prompt-mic-btn" onclick="startPromptVoice()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="语音输入">🎤</button>
     <button class="btn" id="prompt-camera-btn" onclick="triggerPromptCamera()" style="padding:8px;width:36px;height:36px;border-radius:8px;flex:0 0 auto" title="拍照">📷</button>
   `;
@@ -2317,7 +2319,8 @@ async function confirmAddToInventory(idx) {
     inventory[ing.zh].maxQty = Math.max(inventory[ing.zh].maxQty, inventory[ing.zh].qty);
     if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
   } else {
-    inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: newQty, unit: ing.unit, maxQty: newQty };
+    const unit = ing.unit || inventory[ing.zh]?.unit || '个';
+    inventory[ing.zh] = { zh: ing.zh, en: ing.en, qty: newQty, unit: unit, maxQty: newQty };
     if (expiryDays) inventory[ing.zh].expiryDays = expiryDays;
   }
   
