@@ -2280,10 +2280,24 @@ async function promptAddToInventory(ing, idx) {
     '八角': ['袋', 'oz'], '花椒': ['袋', 'oz'], '桂皮': ['袋', 'oz'],
     '淀粉': ['袋', 'lb', 'oz'], '生粉': ['袋', 'lb', 'oz'],
     '可乐': ['瓶', '罐', '升'], '雪碧': ['瓶', '罐', '升'], '果汁': ['瓶', '罐', '升'],
-    '矿泉水': ['瓶', '升'], '水': ['瓶', '升']
+    '矿泉水': ['瓶', '升'], '水': ['瓶', '升'],
+    '大蒜': ['头', '袋', 'lb'], '葱': ['把', '根', '袋'], '姜': ['块', '袋', 'lb'],
+    '土豆': ['个', 'lb'], '番茄': ['个', 'lb'], '黄瓜': ['根', '条', 'lb'],
+    '白菜': ['棵', '颗', 'lb'], '西兰花': ['个', '颗', 'lb'], '菠菜': ['把', '袋', 'lb'],
+    '胡萝卜': ['根', 'lb'], '洋葱': ['个', 'lb'], '芹菜': ['把', '根', 'lb'],
+    '苹果': ['个', 'lb'], '香蕉': ['根', 'lb'], '橙子': ['个', 'lb'],
+    '葡萄': ['串', 'lb'], '柠檬': ['个', 'lb'], '柚子': ['个', 'lb'],
+    '虾': ['磅', 'lb', 'oz'], '鱼': ['磅', 'lb'], '蟹': ['磅', 'lb'],
+    '三文鱼': ['磅', 'lb'], '金枪鱼': ['磅', 'lb']
   };
   const unitOptions = defaultUnits[ing.zh] || ['个'];
   const unit = ing.unit || unitOptions[0];
+  
+  const integerUnits = ['个', '头', '把', '根', '棵', '颗', '袋', '瓶', '罐', '把', '串', '枝', '盒', '包'];
+  const useInteger = integerUnits.includes(unit);
+  const qtyStep = useInteger ? '1' : '0.1';
+  const qtyValue = useInteger ? Math.round(ing.qty || 1) : (ing.qty || 1);
+  
   let msg = `添加到库存（${ing.zh} / ${ing.en}）`;
   if (inInv) {
     msg += `<br><span style="color:#b86000;font-size:11px">库存已有: ${inInv.qty}${inInv.unit}</span>`;
@@ -2302,7 +2316,7 @@ async function promptAddToInventory(ing, idx) {
     <div style="display:flex;gap:6px;width:100%;flex-wrap:wrap">
       <div style="display:flex;align-items:center;background:var(--surface2);padding:6px 8px;border-radius:8px;border:1px solid var(--border);flex-shrink:0">
         <span style="font-size:12px;color:var(--muted)">数量</span>
-        <input type="number" id="inv-qty-input" value="${ing.qty || 1}" min="0.1" step="0.1" style="width:40px;padding:2px 4px;border:none;background:transparent;font-size:14px;text-align:right">
+        <input type="number" id="inv-qty-input" value="${qtyValue}" min="${useInteger ? '1' : '0.1'}" step="${qtyStep}" style="width:40px;padding:2px 4px;border:none;background:transparent;font-size:14px;text-align:right">
         <select id="inv-unit-select" style="border:none;background:transparent;font-size:12px;color:var(--muted)">
           ${unitOptionsHTML}
         </select>
@@ -2531,20 +2545,27 @@ function startPromptVoice() {
   if (_currentPromptIng && _currentPromptIng.zh) {
     const zh = _currentPromptIng.zh;
     const unitExamples = {
-      '鸡蛋': `${qty}dozen或${parseInt(qty)*12}个`, '鸭蛋': `${qty}个`, '鹌鹑蛋': `${qty}个`,
-      '牛奶': `${qty}gallon或${parseInt(qty)*500}ml`, '酸奶': `${qty}cup或${parseInt(qty)*240}ml`, '芝士': `${qty}oz或${Math.round(parseFloat(qty)*0.0625)}lb`,
-      '面粉': `${qty}lb或${Math.round(parseFloat(qty)*16)}oz`, '大米': `${qty}lb或${Math.round(parseFloat(qty)*16)}oz`,
-      '黄油': `${qty}stick或${parseInt(qty)*4}oz`, '奶油': `${qty}cup或${parseInt(qty)*240}ml`,
+      '鸡蛋': `${qty}dozen`, '鸭蛋': `${qty}个`, '鹌鹑蛋': `${qty}个`,
+      '牛奶': `${qty}gallon`, '酸奶': `${qty}cup`, '芝士': `${qty}oz`,
+      '面粉': `${qty}lb`, '大米': `${qty}lb`, '糖': `${qty}lb`, '盐': `${qty}lb`,
+      '黄油': `${qty}stick`, '奶油': `${qty}cup`,
       '牛肉': `${qty}磅`, '猪肉': `${qty}磅`, '羊肉': `${qty}磅`,
       '五花肉': `${qty}磅`, '牛腩': `${qty}磅`, '猪排': `${qty}磅`,
-      '鸡腿': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡翅': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '翅膀': `${qty}个或${Math.round(parseFloat(qty)*0.5)}磅`, '鸡胸': `${qty}磅`,
-      '生抽': `${qty}瓶或${qty}袋`, '老抽': `${qty}瓶或${qty}袋`, '酱油': `${qty}瓶或${qty}袋`, '蚝油': `${qty}瓶或${qty}袋`,
-      '料酒': `${qty}瓶或${qty}袋`, '醋': `${qty}瓶或${qty}袋`,
-      '豆瓣酱': `${qty}瓶或${qty}袋`, '甜面酱': `${qty}瓶或${qty}袋`, '辣椒酱': `${qty}瓶或${qty}袋`,
+      '鸡腿': `${qty}个`, '鸡翅': `${qty}个`, '翅膀': `${qty}个`, '鸡胸': `${qty}磅`,
+      '生抽': `${qty}瓶`, '老抽': `${qty}瓶`, '酱油': `${qty}瓶`, '蚝油': `${qty}瓶`,
+      '料酒': `${qty}瓶`, '醋': `${qty}瓶`,
+      '豆瓣酱': `${qty}瓶`, '甜面酱': `${qty}瓶`, '辣椒酱': `${qty}瓶`,
       '八角': `${qty}袋`, '花椒': `${qty}袋`, '桂皮': `${qty}袋`,
       '淀粉': `${qty}袋`, '生粉': `${qty}袋`,
-      '可乐': `${qty}瓶或${qty}罐`, '雪碧': `${qty}瓶或${qty}罐`, '果汁': `${qty}瓶或${qty}罐`,
-      '矿泉水': `${qty}瓶`, '水': `${qty}瓶`
+      '可乐': `${qty}瓶`, '雪碧': `${qty}瓶`, '果汁': `${qty}瓶`,
+      '矿泉水': `${qty}瓶`, '水': `${qty}瓶`,
+      '大蒜': `${qty}头`, '葱': `${qty}把`, '姜': `${qty}块`,
+      '土豆': `${qty}个`, '番茄': `${qty}个`, '黄瓜': `${qty}根`,
+      '白菜': `${qty}棵`, '西兰花': `${qty}个`, '菠菜': `${qty}把`,
+      '胡萝卜': `${qty}根`, '洋葱': `${qty}个`, '芹菜': `${qty}把`,
+      '苹果': `${qty}个`, '香蕉': `${qty}根`, '橙子': `${qty}个`,
+      '葡萄': `${qty}串`, '柠檬': `${qty}个`, '柚子': `${qty}个`,
+      '虾': `${qty}磅`, '鱼': `${qty}磅`, '三文鱼': `${qty}磅`
     };
     const example = unitExamples[zh] || `${qty} ${unit}`;
     const today = new Date();
